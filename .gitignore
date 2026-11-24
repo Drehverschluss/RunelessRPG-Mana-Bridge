@@ -38,3 +38,15 @@ run/
 **/src/generated/**/.cache/
 repo/
 !**/src/**/repo/
+
+### Lokale Projekt-Ordner (nicht im Repo) ###
+CLAUDE.md
+.claude/
+Konzept/
+CurseforgeSachen/
+*-Prompt.txt
+libs/
+
+### Probe test (dedicated server dir)
+run-server/
+run-client2/

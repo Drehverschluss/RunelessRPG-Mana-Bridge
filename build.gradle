@@ -27,7 +27,28 @@ sourceSets.main.resources {
 }
 
 repositories {
-    // Add here additional repositories if required by some of the dependencies below.
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'Modrinth'
+                url = 'https://api.modrinth.com/maven'
+            }
+        }
+        filter {
+            includeGroup 'maven.modrinth'
+        }
+    }
+    exclusiveContent {
+        forRepository {
+            maven {
+                name = 'CurseMaven'
+                url = 'https://cursemaven.com'
+            }
+        }
+        filter {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 base {
@@ -54,6 +75,8 @@ neoForge {
     runs {
         client {
             client()
+            // Larger dev window for in-game tests and screenshots
+            programArguments.addAll '--width', '1600', '--height', '900'
             // Comma-separated list of namespaces to load gametests from. Empty = all namespaces.
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
         }
@@ -115,28 +138,47 @@ configurations {
     runtimeClasspath.extendsFrom localRuntime
 }
 
+// Test mod groups for the dev runs (folders in libs/test, see libs/test/README.md).
+// libs/test/base is always loaded; test_mods picks the others ("none" = base only), e.g. -Ptest_mods=irons,ars
+def knownTestGroups = ['irons', 'ars']
+def testModsValue = project.findProperty('test_mods')?.toString()?.trim() ?: 'none'
+def testGroups = testModsValue == 'none' ? [] : testModsValue.split(',').collect { it.trim() }.findAll { !it.isEmpty() }.unique()
+def unknownTestGroups = testGroups.findAll { !knownTestGroups.contains(it) }
+if (!unknownTestGroups.isEmpty()) {
+    throw new GradleException("Unknown test_mods value(s) ${unknownTestGroups} in '${testModsValue}'. " +
+            "Allowed: none, or a comma-separated list of ${knownTestGroups.join(', ')}")
+}
+
 dependencies {
-    // Example optional mod dependency with JEI
-    // The JEI API is declared for compile time use, while the full JEI artifact is used at runtime
-    // compileOnly "mezz.jei:jei-${mc_version}-common-api:${jei_version}"
-    // compileOnly "mezz.jei:jei-${mc_version}-neoforge-api:${jei_version}"
-    // We add the full version to localRuntime, not runtimeOnly, so that we do not publish a dependency on it
-    // localRuntime "mezz.jei:jei-${mc_version}-neoforge:${jei_version}"
+    // Nothing is bundled: every mod dependency is compile-only. At runtime the mods come from the mods folder,
+    // in the dev runs from localRuntime below.
 
-    // Example mod dependency using a mod jar from ./libs with a flat dir repository
-    // This maps to ./libs/coolmod-${mc_version}-${coolmod_version}.jar
-    // The group id is ignored when searching -- in this case, it is "blank"
-    // implementation "blank:coolmod-${mc_version}:${coolmod_version}"
+    // RunelessRPG (required), only its public API (com.drehverschluss.runelessrpg.api) is used
+    compileOnly "curse.maven:runelessrpg-${runelessrpg_curseforge_project}:${runelessrpg_curseforge_file}"
+    // Spell Engine and Spell Power (come with RunelessRPG)
+    compileOnly("maven.modrinth:spell-engine:${spell_engine_version}") { transitive = false }
+    compileOnly "maven.modrinth:spell-power:${spell_power_version}"
+    // Iron's Spells 'n Spellbooks (optional) with Iron's Lib
+    compileOnly("maven.modrinth:irons-spells-n-spellbooks:${irons_spellbooks_version}") { transitive = false }
+    compileOnly("maven.modrinth:irons-lib:${irons_lib_version}") { transitive = false }
+    // Ars Nouveau (optional)
+    compileOnly("maven.modrinth:ars-nouveau:${ars_nouveau_version}") { transitive = false }
 
-    // Example mod dependency using a file as dependency
-    // implementation files("libs/coolmod-${mc_version}-${coolmod_version}.jar")
-
-    // Example project dependency using a sister or child project:
-    // implementation project(":myproject")
-
-    // For more info:
-    // http://www.gradle.org/docs/current/userguide/artifact_dependencies_tutorial.html
-    // http://www.gradle.org/docs/current/userguide/dependency_management.html
+    // Dev runs: RunelessRPG from CurseMaven, test mods from libs/test (base always, the rest by test_mods)
+    localRuntime "curse.maven:runelessrpg-${runelessrpg_curseforge_project}:${runelessrpg_curseforge_file}"
+    localRuntime fileTree(dir: 'libs/test/base', include: '*.jar')
+    if (!testGroups.isEmpty()) {
+        // GeckoLib and Curios, needed by Iron's and Ars
+        localRuntime fileTree(dir: 'libs/test/shared', include: '*.jar')
+    }
+    if (testGroups.contains('irons')) {
+        localRuntime fileTree(dir: 'libs/test/irons', include: '*.jar')
+        // Iron's Lib is not in any local folder, so it comes from the Modrinth Maven
+        localRuntime("maven.modrinth:irons-lib:${irons_lib_version}") { transitive = false }
+    }
+    if (testGroups.contains('ars')) {
+        localRuntime fileTree(dir: 'libs/test/ars', include: '*.jar')
+    }
 }
 
 // This block of code expands all declared replace properties in the specified resource targets.
@@ -151,6 +193,11 @@ var generateModMetadata = tasks.register("generateModMetadata", ProcessResources
             mod_name               : mod_name,
             mod_license            : mod_license,
             mod_version            : mod_version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description,
+            runelessrpg_version_range     : runelessrpg_version_range,
+            irons_spellbooks_version_range: irons_spellbooks_version_range,
+            ars_nouveau_version_range     : ars_nouveau_version_range,
     ]
     inputs.properties replaceProperties
     expand replaceProperties

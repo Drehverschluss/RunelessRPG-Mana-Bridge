@@ -1,25 +1,13 @@
+# RunelessRPG Mana Bridge
 
-Installation information
-=======
+One shared mana pool for RunelessRPG (Spell Engine) and other magic mods such as Iron's Spells 'n Spellbooks and Ars Nouveau. The pack chooses which mod's mana leads, every player chooses which mana bar to see.
 
-This template repository can be directly cloned to get you started with a new
-mod. Simply create a new repository cloned from this one, by following the
-instructions provided by [GitHub](https://docs.github.com/en/repositories/creating-and-managing-repositories/creating-a-repository-from-a-template).
+**Work in progress.** There is no release yet and the mod does not do anything so far.
 
-Once you have your clone, simply open the repository in the IDE of your choice. The usual recommendation for an IDE is either IntelliJ IDEA or Eclipse.
+- Minecraft 1.21.1, NeoForge
+- Requires RunelessRPG 0.4.0 or newer
+- Optional: Iron's Spells 'n Spellbooks, Ars Nouveau
 
-If at any point you are missing libraries in your IDE, or you've run into problems you can
-run `gradlew --refresh-dependencies` to refresh the local cache. `gradlew clean` to reset everything 
-{this does not affect your code} and then start the process again.
+## License
 
-Mapping Names:
-============
-By default, the MDK is configured to use the official mapping names from Mojang for methods and fields 
-in the Minecraft codebase. These names are covered by a specific license. All modders should be aware of this
-license. For the latest license text, refer to the mapping file itself, or the reference copy here:
-https://github.com/NeoForged/NeoForm/blob/main/Mojang.md
-
-Additional Resources: 
-==========
-Community Documentation: https://docs.neoforged.net/  
-NeoForged Discord: https://discord.neoforged.net/
+MIT, see [LICENSE](LICENSE).
