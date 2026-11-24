@@ -1,0 +1,178 @@
+package com.drehverschluss.runelessrpg_bridge.core;
+
+import com.drehverschluss.runelessrpg.api.ManaChangeEvent;
+import com.drehverschluss.runelessrpg.api.RunelessApi;
+import com.drehverschluss.runelessrpg_bridge.core.network.BridgeSettingsPayload;
+import com.drehverschluss.runelessrpg_bridge.core.network.ClientBridgeState;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.entity.player.Player;
+import net.neoforged.fml.LogicalSide;
+import net.neoforged.fml.util.thread.EffectiveSide;
+import net.neoforged.neoforge.common.util.FakePlayer;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Switch between a following mod and the shared pool, in the following mod's own units ("own mana"). Everything is
+ * computed in RunelessRPG mana through RunelessRPG's API; adapters' hooks only call these methods.
+ */
+public final class Pool {
+    /** Rounding guard for values like 13.4 / 0.2 = 66.99999…. */
+    private static final double EPSILON = 1.0E-6;
+
+    private Pool() {}
+
+    /** @return true for real players: server players that are no fake players, or the local player on the client */
+    public static boolean isRealPlayer(@Nullable Player player) {
+        if (player == null || player instanceof FakePlayer) {
+            return false;
+        }
+        return player instanceof ServerPlayer || player.level().isClientSide();
+    }
+
+    /** @return true if the adapter is active and the player is a real player */
+    public static boolean applies(String modId, @Nullable Player player) {
+        if (!isRealPlayer(player)) {
+            return false;
+        }
+        AdapterHandle handle = Adapters.getOrNull(modId);
+        return handle != null && handle.isActive();
+    }
+
+    // ------------------------------------------------------------------ factor
+
+    /** 1 own mana = factor RunelessRPG mana: the configured value, or RunelessRPG base max mana ÷ the mod's base max mana. */
+    public static double factor(@Nullable Player player, String modId) {
+        AdapterHandle handle = Adapters.getOrNull(modId);
+        if (handle == null) {
+            return 1.0;
+        }
+        double configured = configuredFactor(handle, player);
+        if (configured > 0.0) {
+            return configured;
+        }
+        AdapterHandle runeless = Adapters.getOrNull(Adapters.RUNELESS);
+        double runelessBase = runeless == null ? 20.0 : runeless.adapter().baseMaxMana(player);
+        double ownBase = handle.adapter().baseMaxMana(player);
+        if (!(runelessBase > 0.0) || !(ownBase > 0.0)) {
+            return 1.0;
+        }
+        return runelessBase / ownBase;
+    }
+
+    private static double configuredFactor(AdapterHandle handle, @Nullable Player player) {
+        if (isClient(player)) {
+            BridgeSettingsPayload.AdapterState state = ClientBridgeState.get(handle.modId());
+            return state == null ? -1.0 : state.manaFactor();
+        }
+        try {
+            return handle.configFactor();
+        } catch (IllegalStateException e) {
+            return -1.0;
+        }
+    }
+
+    private static boolean isClient(@Nullable Player player) {
+        return player != null ? player.level().isClientSide() : EffectiveSide.get() == LogicalSide.CLIENT;
+    }
+
+    // ------------------------------------------------------------------ reading and writing (own units)
+
+    /** Shared mana in own units; 0 while the player is in debt (other mods cannot show debt). */
+    public static double read(Player player, String modId) {
+        return Math.max(0.0, RunelessApi.getMana(player)) / factor(player, modId);
+    }
+
+    /** Shared max mana in own units. */
+    public static double readMax(Player player, String modId) {
+        return RunelessApi.getMaxMana(player) / factor(player, modId);
+    }
+
+    /** Whole own mana for mods that show integers (rounded down, with a guard against 66.99999…). */
+    public static int readInt(Player player, String modId) {
+        return (int) Math.floor(read(player, modId) + EPSILON);
+    }
+
+    /** Whole own max mana (rounded down, with the same guard). */
+    public static int readMaxInt(Player player, String modId) {
+        return (int) Math.floor(readMax(player, modId) + EPSILON);
+    }
+
+    /**
+     * Applies a change the following mod made to its own value: the difference × factor goes to RunelessRPG with the reason
+     * {@code EXTERNAL} (more mana pays debt first and never exceeds the max; less never creates debt).
+     */
+    public static void write(ServerPlayer player, String modId, double oldOwn, double newOwn) {
+        double delta = (newOwn - oldOwn) * factor(player, modId);
+        if (delta > 0.0) {
+            RunelessApi.giveMana(player, delta, ManaChangeEvent.Reason.EXTERNAL);
+        } else if (delta < 0.0) {
+            RunelessApi.takeMana(player, -delta, ManaChangeEvent.Reason.EXTERNAL);
+        }
+    }
+
+    // ------------------------------------------------------------------ costs
+
+    /** @return the multiplier from {@code runelessrpg:mana_cost} if the adapter applies it, else 1 */
+    public static double costMultiplier(Player player, String modId) {
+        return applyManaCost(player, modId) ? RunelessApi.getCostMultiplier(player) : 1.0;
+    }
+
+    private static boolean applyManaCost(Player player, String modId) {
+        if (isClient(player)) {
+            BridgeSettingsPayload.AdapterState state = ClientBridgeState.get(modId);
+            return state == null || state.applyManaCost();
+        }
+        AdapterHandle handle = Adapters.getOrNull(modId);
+        return handle == null || handle.configApplyManaCost();
+    }
+
+    /** Effective cost in own units: own cost × max(lower limit, mana_cost). */
+    public static double effectiveCost(Player player, String modId, double ownCost) {
+        return ownCost * costMultiplier(player, modId);
+    }
+
+    /** What RunelessRPG pays for an own cost: effective cost × factor. */
+    public static double runelessCost(Player player, String modId, double ownCost) {
+        return effectiveCost(player, modId, ownCost) * factor(player, modId);
+    }
+
+    public static boolean foreignSpellsUseDebt(Player player) {
+        if (isClient(player)) {
+            return ClientBridgeState.foreignSpellsUseDebt();
+        }
+        return BridgeConfig.get(BridgeConfig.FOREIGN_SPELLS_USE_DEBT, true);
+    }
+
+    /** Same check on client and server: can the player pay this own cost from the shared pool? */
+    public static boolean canAfford(Player player, String modId, double ownCost) {
+        return RunelessApi.canAfford(player, runelessCost(player, modId, ownCost), foreignSpellsUseDebt(player));
+    }
+
+    /** @return the missing RunelessRPG mana for this own cost (0 if affordable) */
+    public static double missing(Player player, String modId, double ownCost) {
+        return RunelessApi.getMissingMana(player, runelessCost(player, modId, ownCost), foreignSpellsUseDebt(player));
+    }
+
+    /**
+     * Pays an own cost from the shared pool with the debt rules of Spell Engine spells. If the player cannot pay, the
+     * pool goes down to 0 at most (like the mod would do itself) and RunelessRPG's bar flashes.
+     *
+     * @return true if paid in full
+     */
+    public static boolean pay(ServerPlayer player, String modId, double ownCost) {
+        double amount = runelessCost(player, modId, ownCost);
+        boolean debt = foreignSpellsUseDebt(player);
+        if (RunelessApi.spend(player, amount, debt)) {
+            return true;
+        }
+        double missing = RunelessApi.getMissingMana(player, amount, debt);
+        RunelessApi.takeMana(player, amount, ManaChangeEvent.Reason.EXTERNAL);
+        RunelessApi.signalInsufficientMana(player, missing);
+        return false;
+    }
+
+    /** Red flash of RunelessRPG's bar and the client event for a failed cast of an own cost. */
+    public static void signalInsufficient(ServerPlayer player, String modId, double ownCost) {
+        RunelessApi.signalInsufficientMana(player, missing(player, modId, ownCost));
+    }
+}

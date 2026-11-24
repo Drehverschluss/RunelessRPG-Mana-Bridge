@@ -1,1 +1,31 @@
-{}
+{
+  "runelessrpg_bridge.chat.conflict": "[RunelessRPG Mana Bridge] Die Anbindung für %s ist aus, weil %s aktiv ist (eine andere Brücke am selben Mana-Vorrat). Mit ignoreConflicts = true in runelessrpg_bridge-server.toml bleibt sie an, falls dein Pack das selbst regelt.",
+
+  "runelessrpg_bridge.configuration.title": "RunelessRPG Mana Bridge",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.server.toml": "Server-Einstellungen",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.server.toml.title": "RunelessRPG Mana Bridge: Server",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.client.toml": "Client-Einstellungen",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.client.toml.title": "RunelessRPG Mana Bridge: Client",
+  "runelessrpg_bridge.configuration.general": "Allgemein",
+  "runelessrpg_bridge.configuration.general.button": "Bearbeiten...",
+  "runelessrpg_bridge.configuration.irons_spellbooks": "Iron's Spells 'n Spellbooks",
+  "runelessrpg_bridge.configuration.irons_spellbooks.button": "Bearbeiten...",
+  "runelessrpg_bridge.configuration.display": "Anzeige",
+  "runelessrpg_bridge.configuration.display.button": "Bearbeiten...",
+  "runelessrpg_bridge.configuration.manaSystem": "Führendes Mana-System",
+  "runelessrpg_bridge.configuration.foreignSpellsUseDebt": "Fremde Zauber nutzen Mana-Schulden",
+  "runelessrpg_bridge.configuration.conflictingMods": "Weitere andere Brücken",
+  "runelessrpg_bridge.configuration.ignoreConflicts": "Andere Brücken ignorieren",
+  "runelessrpg_bridge.configuration.notifyConflictsInChat": "Operatoren über andere Brücken informieren",
+  "runelessrpg_bridge.configuration.enabled": "Mit dem gemeinsamen Vorrat verbinden",
+  "runelessrpg_bridge.configuration.manaFactor": "Mana-Faktor (-1 = automatisch)",
+  "runelessrpg_bridge.configuration.applyManaCost": "Mana Cost gilt",
+  "runelessrpg_bridge.configuration.disableOwnRegen": "Eigene Regeneration aus",
+  "runelessrpg_bridge.configuration.ignoreOwnRespawnRule": "Eigene Respawn-Regel übergehen",
+  "runelessrpg_bridge.configuration.spellManaLeech": "Spell Mana Leech bei Zaubertreffern",
+  "runelessrpg_bridge.configuration.manaDisplay": "Mana-Leiste",
+  "runelessrpg_bridge.configuration.showRunelessBarOnDebt": "RunelessRPG-Leiste bei Schulden",
+  "runelessrpg_bridge.configuration.displayUnit": "Anzeige-Einheit",
+  "runelessrpg_bridge.configuration.convertForeignTooltips": "Tooltips anderer Mods umrechnen",
+  "runelessrpg_bridge.configuration.showForeignBarWithSpellWeapons": "Andere Leisten mit Zauber-Gegenständen"
+}

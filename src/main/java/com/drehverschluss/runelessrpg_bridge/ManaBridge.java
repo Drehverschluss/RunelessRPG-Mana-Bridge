@@ -1,5 +1,6 @@
 package com.drehverschluss.runelessrpg_bridge;
 
+import com.drehverschluss.runelessrpg_bridge.core.Bridge;
 import com.mojang.logging.LogUtils;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -26,5 +27,7 @@ public class ManaBridge {
                 .filter(Objects::nonNull)
                 .collect(Collectors.joining(", "));
         LOGGER.info("Mana mods present: {}", present.isEmpty() ? "none (nothing to do)" : present);
+
+        Bridge.init(modEventBus, modContainer);
     }
 }

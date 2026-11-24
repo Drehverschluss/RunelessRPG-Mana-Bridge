@@ -1,0 +1,25 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.drehverschluss.runelessrpg_bridge.adapter.irons_spellbooks.mixin",
+  "plugin": "com.drehverschluss.runelessrpg_bridge.adapter.irons_spellbooks.mixin.IronsMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "AbstractSpellMixin",
+    "InstantManaEffectMixin",
+    "MagicDataMixin",
+    "MagicManagerMixin",
+    "ServerPlayerEventsMixin"
+  ],
+  "client": [
+    "client.AttributeDisplayMixin",
+    "client.ClientMagicDataMixin",
+    "client.InscriptionTableScreenMixin",
+    "client.ManaBarOverlayMixin",
+    "client.SpellWheelOverlayMixin",
+    "client.TooltipsUtilsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

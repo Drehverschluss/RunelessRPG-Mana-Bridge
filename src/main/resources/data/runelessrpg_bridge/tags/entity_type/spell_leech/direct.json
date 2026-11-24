@@ -1,0 +1,11 @@
+{
+  "values": [
+    { "id": "minecraft:lightning_bolt", "required": false },
+    { "id": "minecraft:evoker_fangs", "required": false },
+    { "id": "minecraft:firework_rocket", "required": false },
+    { "id": "irons_spellbooks:devour_jaw", "required": false },
+    { "id": "irons_spellbooks:sunbeam", "required": false },
+    { "id": "irons_spellbooks:ice_spike", "required": false },
+    { "id": "irons_spellbooks:poison_splash", "required": false }
+  ]
+}

@@ -3,6 +3,11 @@ loaderVersion="${loader_version_range}"
 license="${mod_license}"
 issueTrackerURL="https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/issues"
 
+# Adapter for Iron's Spells 'n Spellbooks: only loaded while Iron's is installed
+[[mixins]]
+config="${mod_id}.irons_spellbooks.mixins.json"
+requiredMods=["irons_spellbooks"]
+
 [[mods]]
 modId="${mod_id}"
 version="${mod_version}"

@@ -1,1 +1,31 @@
-{}
+{
+  "runelessrpg_bridge.chat.conflict": "[RunelessRPG Mana Bridge] The adapter for %s is off because %s is active (another bridge at the same mana pool). Set ignoreConflicts = true in runelessrpg_bridge-server.toml if your pack handles this.",
+
+  "runelessrpg_bridge.configuration.title": "RunelessRPG Mana Bridge",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.server.toml": "Server settings",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.server.toml.title": "RunelessRPG Mana Bridge: server",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.client.toml": "Client settings",
+  "runelessrpg_bridge.configuration.section.runelessrpg.bridge.client.toml.title": "RunelessRPG Mana Bridge: client",
+  "runelessrpg_bridge.configuration.general": "General",
+  "runelessrpg_bridge.configuration.general.button": "Edit...",
+  "runelessrpg_bridge.configuration.irons_spellbooks": "Iron's Spells 'n Spellbooks",
+  "runelessrpg_bridge.configuration.irons_spellbooks.button": "Edit...",
+  "runelessrpg_bridge.configuration.display": "Display",
+  "runelessrpg_bridge.configuration.display.button": "Edit...",
+  "runelessrpg_bridge.configuration.manaSystem": "Leading mana system",
+  "runelessrpg_bridge.configuration.foreignSpellsUseDebt": "Other mods' spells use mana debt",
+  "runelessrpg_bridge.configuration.conflictingMods": "More conflicting bridges",
+  "runelessrpg_bridge.configuration.ignoreConflicts": "Ignore other bridges",
+  "runelessrpg_bridge.configuration.notifyConflictsInChat": "Tell operators about other bridges",
+  "runelessrpg_bridge.configuration.enabled": "Connect to the shared pool",
+  "runelessrpg_bridge.configuration.manaFactor": "Mana factor (-1 = auto)",
+  "runelessrpg_bridge.configuration.applyManaCost": "Mana Cost applies",
+  "runelessrpg_bridge.configuration.disableOwnRegen": "Turn off own regeneration",
+  "runelessrpg_bridge.configuration.ignoreOwnRespawnRule": "Ignore own respawn rule",
+  "runelessrpg_bridge.configuration.spellManaLeech": "Spell Mana Leech on spell hits",
+  "runelessrpg_bridge.configuration.manaDisplay": "Mana bar",
+  "runelessrpg_bridge.configuration.showRunelessBarOnDebt": "RunelessRPG bar while in debt",
+  "runelessrpg_bridge.configuration.displayUnit": "Display unit",
+  "runelessrpg_bridge.configuration.convertForeignTooltips": "Convert other mods' tooltips",
+  "runelessrpg_bridge.configuration.showForeignBarWithSpellWeapons": "Other bars with casting items"
+}

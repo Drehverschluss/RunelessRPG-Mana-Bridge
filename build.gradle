@@ -139,8 +139,9 @@ configurations {
 }
 
 // Test mod groups for the dev runs (folders in libs/test, see libs/test/README.md).
-// libs/test/base is always loaded; test_mods picks the others ("none" = base only), e.g. -Ptest_mods=irons,ars
-def knownTestGroups = ['irons', 'ars']
+// libs/test/base is always loaded; test_mods picks the others ("none" = base only), e.g. -Ptest_mods=irons,ars.
+// "optional" (e.g. Gearscope) and "bridges" (other mana bridges) are never in the default, only for single tests.
+def knownTestGroups = ['irons', 'ars', 'optional', 'bridges']
 def testModsValue = project.findProperty('test_mods')?.toString()?.trim() ?: 'none'
 def testGroups = testModsValue == 'none' ? [] : testModsValue.split(',').collect { it.trim() }.findAll { !it.isEmpty() }.unique()
 def unknownTestGroups = testGroups.findAll { !knownTestGroups.contains(it) }
@@ -167,7 +168,7 @@ dependencies {
     // Dev runs: RunelessRPG from CurseMaven, test mods from libs/test (base always, the rest by test_mods)
     localRuntime "curse.maven:runelessrpg-${runelessrpg_curseforge_project}:${runelessrpg_curseforge_file}"
     localRuntime fileTree(dir: 'libs/test/base', include: '*.jar')
-    if (!testGroups.isEmpty()) {
+    if (testGroups.contains('irons') || testGroups.contains('ars')) {
         // GeckoLib and Curios, needed by Iron's and Ars
         localRuntime fileTree(dir: 'libs/test/shared', include: '*.jar')
     }
@@ -178,6 +179,12 @@ dependencies {
     }
     if (testGroups.contains('ars')) {
         localRuntime fileTree(dir: 'libs/test/ars', include: '*.jar')
+    }
+    if (testGroups.contains('optional')) {
+        localRuntime fileTree(dir: 'libs/test/optional', include: '*.jar')
+    }
+    if (testGroups.contains('bridges')) {
+        localRuntime fileTree(dir: 'libs/test/bridges', include: '*.jar')
     }
 }
 

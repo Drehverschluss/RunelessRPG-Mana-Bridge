@@ -1,0 +1,7 @@
+{
+  "values": [
+    { "id": "irons_spellbooks:echoing_sword", "required": false },
+    { "id": "irons_spellbooks:echoing_arrow", "required": false },
+    { "id": "irons_spellbooks:ball_lightning", "required": false }
+  ]
+}
