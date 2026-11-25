@@ -21,7 +21,7 @@
   "runelessrpg_bridge.configuration.conflictingMods": "More conflicting bridges",
   "runelessrpg_bridge.configuration.ignoreConflicts": "Ignore other bridges",
   "runelessrpg_bridge.configuration.notifyConflictsInChat": "Tell operators about other bridges",
-  "runelessrpg_bridge.configuration.chainWithArsNSpells": "Chain with Ars 'n Spells (ISS_PRIMARY)",
+  "runelessrpg_bridge.configuration.chainWithArsNSpells": "Chain with Ars 'n Spells (iss_primary, ars_primary)",
   "runelessrpg_bridge.configuration.enabled": "Connect to the shared pool",
   "runelessrpg_bridge.configuration.manaFactor": "Mana factor (-1 = auto)",
   "runelessrpg_bridge.configuration.applyManaCost": "Mana Cost applies",

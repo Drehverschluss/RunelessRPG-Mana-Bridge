@@ -105,6 +105,11 @@ public final class ArsEvents {
     @SubscribeEvent
     public static void serverTick(ServerTickEvent.Post event) {
         ArsLeech.clear();
+        try {
+            ArsStorage.flush(event.getServer());
+        } catch (RuntimeException e) {
+            error("sending Ars' mana to the client", e);
+        }
     }
 
     @SubscribeEvent

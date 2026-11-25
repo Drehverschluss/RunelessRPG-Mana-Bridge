@@ -87,46 +87,53 @@ public final class Attributes {
      * Sets the modifiers of the bridge on the leading mod's attributes: flat and percent max mana on {@code maxManaId},
      * percent and total regeneration on {@code manaRegenId}, and flat regeneration there too if {@code flatRegenId} is
      * not null. {@link com.drehverschluss.runelessrpg_bridge.api.BridgeBonus#NONE} removes them all.
+     *
+     * @return true if a modifier was added, changed or removed
      */
-    public static void applyBridge(Player player, String maxManaId, String manaRegenId, @Nullable String flatRegenId,
+    public static boolean applyBridge(Player player, String maxManaId, String manaRegenId, @Nullable String flatRegenId,
             com.drehverschluss.runelessrpg_bridge.api.BridgeBonus bonus) {
-        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_flat"), bonus.maxFlat(), AttributeModifier.Operation.ADD_VALUE);
-        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_base"), bonus.maxBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_total"), bonus.maxTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        boolean changed = setBridgeModifier(player, maxManaId, bridgeId("bridge_max_flat"), bonus.maxFlat(), AttributeModifier.Operation.ADD_VALUE);
+        changed |= setBridgeModifier(player, maxManaId, bridgeId("bridge_max_base"), bonus.maxBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        changed |= setBridgeModifier(player, maxManaId, bridgeId("bridge_max_total"), bonus.maxTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         if (flatRegenId != null) {
-            setBridgeModifier(player, flatRegenId, bridgeId("bridge_regen_flat"), bonus.regenFlat(), AttributeModifier.Operation.ADD_VALUE);
+            changed |= setBridgeModifier(player, flatRegenId, bridgeId("bridge_regen_flat"), bonus.regenFlat(), AttributeModifier.Operation.ADD_VALUE);
         }
-        setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_base"), bonus.regenBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
-        setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_total"), bonus.regenTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        changed |= setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_base"), bonus.regenBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        changed |= setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_total"), bonus.regenTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
         // reserved share (e.g. Ars familiars) as its own total modifier, so it shows on the leading bar and in tooltips
-        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_reserve"), -Math.max(0.0, Math.min(1.0, bonus.reserve())),
+        changed |= setBridgeModifier(player, maxManaId, bridgeId("bridge_max_reserve"), -Math.max(0.0, Math.min(1.0, bonus.reserve())),
                 AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        return changed;
     }
 
     /**
      * Sets a transient modifier of this bridge: removed if {@code amount} is 0 (no effect), replaced only if the amount
      * changed. Transient modifiers are never saved, so nothing stays on a player once the bridge is gone.
+     *
+     * @return true if the modifier was added, changed or removed
      */
-    public static void setBridgeModifier(Player player, String attributeId, ResourceLocation modifierId, double amount,
+    public static boolean setBridgeModifier(Player player, String attributeId, ResourceLocation modifierId, double amount,
             AttributeModifier.Operation operation) {
         AttributeInstance instance = instance(player, attributeId);
         if (instance == null) {
-            return;
+            return false;
         }
         AttributeModifier current = instance.getModifier(modifierId);
         boolean none = Math.abs(amount) < SAME || !Double.isFinite(amount);
         if (none) {
             if (current != null) {
                 instance.removeModifier(modifierId);
+                return true;
             }
-            return;
+            return false;
         }
         if (current != null) {
             if (current.operation() == operation && Math.abs(current.amount() - amount) < SAME) {
-                return;
+                return false;
             }
             instance.removeModifier(modifierId);
         }
         instance.addTransientModifier(new AttributeModifier(modifierId, amount, operation));
+        return true;
     }
 }

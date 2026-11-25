@@ -14,6 +14,7 @@ import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
+import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 /** Start of the core: adapters, configs, network, self test, detection of other bridges, leader, bridge. */
@@ -41,6 +42,13 @@ public final class Bridge {
             Leader.update(event.getServer());
         });
         NeoForge.EVENT_BUS.addListener(ServerStoppedEvent.class, event -> Leader.reset());
+        NeoForge.EVENT_BUS.addListener(ServerTickEvent.Post.class, event -> {
+            try {
+                Conflicts.poll(event.getServer());
+            } catch (RuntimeException | LinkageError e) {
+                ManaBridge.LOGGER.debug("Looking at the other bridges failed", e);
+            }
+        });
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedInEvent.class, event -> {
             if (event.getEntity() instanceof ServerPlayer player) {
                 if (Conflicts.evaluate() | Leader.update(player.server)) {

@@ -20,7 +20,9 @@ import net.neoforged.neoforge.event.tick.PlayerTickEvent;
  * <p>
  * The tick listener runs at the highest priority of {@link PlayerTickEvent.Post}: after the equipment of this tick is
  * applied (vanilla in the player tick, Curios in the entity tick before it) and before RunelessRPG limits the mana to the
- * maximum, so a relog or respawn never cuts the mana to a maximum without the bridged bonus.
+ * maximum, so a relog or respawn never cuts the mana to a maximum without the bridged bonus. It also runs at the
+ * highest priority of login, respawn and dimension change, because a leading mod may compute its max there (Ars Nouveau
+ * does); bonuses from equipment arrive with the first tick, for the bridge as for the leading mod's own gear.
  */
 public final class BonusBridge {
     private static final Map<UUID, BridgeBonus> CURRENT = new ConcurrentHashMap<>();
@@ -35,6 +37,16 @@ public final class BonusBridge {
             }
         });
         NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedOutEvent.class, event -> CURRENT.remove(event.getEntity().getUUID()));
+        // a leading mod may compute its max in these events (Ars does): the bridge's modifiers are there before it
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, PlayerEvent.PlayerLoggedInEvent.class, BonusBridge::early);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, PlayerEvent.PlayerRespawnEvent.class, BonusBridge::early);
+        NeoForge.EVENT_BUS.addListener(EventPriority.HIGHEST, PlayerEvent.PlayerChangedDimensionEvent.class, BonusBridge::early);
+    }
+
+    private static void early(PlayerEvent event) {
+        if (event.getEntity() instanceof ServerPlayer player && !(player instanceof FakePlayer)) {
+            update(player);
+        }
     }
 
     /** Recomputes the bonus of the leading pool for this player and sets or removes the modifiers. */

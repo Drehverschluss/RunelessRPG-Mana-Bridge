@@ -7,6 +7,7 @@ import com.drehverschluss.runelessrpg_bridge.core.Pool;
 import com.hollingsworth.arsnouveau.api.client.IDisplayMana;
 import com.hollingsworth.arsnouveau.api.item.ICasterTool;
 import com.hollingsworth.arsnouveau.api.spell.SpellResolver;
+import com.hollingsworth.arsnouveau.api.util.ManaUtil;
 import com.hollingsworth.arsnouveau.common.capability.ManaCap;
 import com.hollingsworth.arsnouveau.setup.config.ServerConfig;
 import com.hollingsworth.arsnouveau.setup.registry.CapabilityRegistry;
@@ -42,9 +43,13 @@ public final class ArsHooks {
         return player.level().isClientSide() ? player.isLocalPlayer() : player instanceof ServerPlayer;
     }
 
-    /** @return true if the switch of Ars' own mana applies to this player: real player, Ars follows the leading pool */
+    /**
+     * @return true if the switch of Ars' own mana applies to this player: real player, Ars follows the leading pool, and
+     *         Ars' storage is not RunelessRPG's storage (while the storage changes, RunelessRPG reads and writes Ars' own
+     *         value, which must not go through the switch again)
+     */
     public static boolean applies(@Nullable Player player) {
-        return ArsAdapter.active() && Pool.applies(ID, player) && ownSide(player);
+        return ArsAdapter.active() && Pool.applies(ID, player) && ownSide(player) && !ArsStorage.isActive();
     }
 
     /** @return true if costs, leech and converted displays apply to this player (Ars connected, leading or following) */
@@ -195,6 +200,23 @@ public final class ArsHooks {
         return new BridgeBonus(progressMax, 0.0, 1.0, progressRegen, 0.0, 1.0, reserved);
     }
 
+    /** Ars' max and reserve computed again and sent, as Ars does every few ticks ({@code ManaCapEvents.playerOnTick}). */
+    static void refreshMax(Player player) {
+        if (!(player instanceof ServerPlayer serverPlayer)) {
+            return;
+        }
+        ManaCap cap = CapabilityRegistry.getMana(player);
+        if (cap == null) {
+            return;
+        }
+        ManaUtil.Mana mana = ManaUtil.calcMaxMana(player);
+        cap.setMaxMana(mana.getRealMax());
+        cap.setReserve(mana.Reserve());
+        if (serverPlayer.connection != null) {
+            cap.syncToClient(serverPlayer);
+        }
+    }
+
     // ------------------------------------------------------------------ items
 
     /** Ars casting items: everything that shows Ars' mana bar (spell books, wands, ...) and caster tools. */
@@ -205,5 +227,7 @@ public final class ArsHooks {
     static void forget(UUID player) {
         CALC.remove(player);
         LAST_CHECK.remove(player);
+        ArsAdapter.LEADING.remove(player);
+        ArsStorage.forget(player);
     }
 }

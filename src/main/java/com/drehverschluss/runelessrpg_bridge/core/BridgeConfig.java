@@ -32,7 +32,8 @@ public final class BridgeConfig {
                         "its adapter is off (enabled = false, self test, another bridge) or it cannot lead. Can be changed at runtime.",
                         "While another mod leads, RunelessRPG's baseMaxMana and baseManaRegen have no effect on the pool (baseMaxMana",
                         "still sets the automatic manaFactor). With \"irons_spellbooks\" the mana after a respawn follows Iron's",
-                        "manaSpawnPercent (default 0 = empty).")
+                        "manaSpawnPercent (default 0 = empty). With \"ars_nouveau\" Ars keeps the mana a player had at death",
+                        "(debt is cleared on death) and regenerates it; Ars' progress, gear and familiars work as without this bridge.")
                 .translation(key("manaSystem"))
                 .define("manaSystem", Adapters.RUNELESS);
         FOREIGN_SPELLS_USE_DEBT = b.comment(
@@ -53,9 +54,12 @@ public final class BridgeConfig {
                 .translation(key("notifyConflictsInChat"))
                 .define("notifyConflictsInChat", true);
         CHAIN_WITH_ARS_N_SPELLS = b.comment(
-                        "With Ars 'n Spells in its mana unification mode \"iss_primary\" (Iron's is its one pool and Ars Nouveau reads it),",
-                        "only the Iron's adapter runs (Iron's <-> leading pool) and Ars 'n Spells keeps Ars <-> Iron's; the Ars adapter is off.",
-                        "Off: any active mana unification of Ars 'n Spells turns both adapters off. Other modes (ars_primary, hybrid) always do.")
+                        "Chain with the mana unification of Ars 'n Spells. Mode \"iss_primary\" (Iron's is its one pool, Ars Nouveau reads",
+                        "it): only the Iron's adapter runs (Iron's <-> leading pool), Ars 'n Spells keeps Ars <-> Iron's, the Ars adapter is",
+                        "off. Mode \"ars_primary\" the other way round: only the Ars adapter runs, the Iron's adapter is off. The adapter that",
+                        "is off cannot lead (manaSystem falls back to \"runelessrpg\"). In a chain the spells that Ars 'n Spells pays for skip",
+                        "mana_cost, mana debt and Spell Mana Leech. Off: any active mana unification turns both adapters off; \"hybrid\"",
+                        "always does. Changes of Ars 'n Spells' mode (also with /ans mode set) are noticed within a second.")
                 .translation(key("chainWithArsNSpells"))
                 .define("chainWithArsNSpells", true);
         b.pop();
@@ -66,12 +70,13 @@ public final class BridgeConfig {
                 b.comment("RunelessRPG's own bonuses while another mod leads the pool (manaSystem).").push(handle.modId());
                 handle.bridgeMaxMana = b.comment(
                                 "Modifiers on runelessrpg:max_mana (gear, enchantments, affixes) count for the leading pool: flat values",
-                                "converted into its unit (+25 -> +125 Iron's mana with the default factor 0.2).")
+                                "converted into its unit (+25 -> +125 Iron's or Ars mana with the default factor 0.2).")
                         .translation(key("bridgeMaxMana"))
                         .define("bridgeMaxMana", true);
                 handle.bridgeManaRegen = b.comment(
                                 "Modifiers on runelessrpg:mana_regen count for the leading pool: flat values are paid into the pool",
-                                "besides its own regeneration (+0.25/s -> +1.25 Iron's mana/s), percent values multiply its regeneration.")
+                                "besides its own regeneration (+0.25/s -> +1.25 Iron's or Ars mana/s), percent values multiply its",
+                                "regeneration.")
                         .translation(key("bridgeManaRegen"))
                         .define("bridgeManaRegen", true);
                 handle.bridgePercentBonuses = b.comment(

@@ -15,7 +15,31 @@ import net.neoforged.fml.ModList;
  * warning in the log and a chat message for operators at login. {@code ignoreConflicts} keeps all adapters on.
  */
 public final class Conflicts {
+    /** Server ticks between two looks at the switches of the other bridges while one is installed. */
+    private static final int POLL_TICKS = 20;
+    private static int tick;
+    private static Boolean knownBridgeInstalled;
+
     private Conflicts() {}
+
+    /**
+     * Once a second while another bridge is installed: its switches can change without a config reload of this mod
+     * (Ars 'n Spells' {@code /ans mode set}, its config screen, a reload of its own config). Then the leader and the
+     * clients follow at once. Without another bridge nothing runs.
+     */
+    static void poll(net.minecraft.server.MinecraftServer server) {
+        if (++tick < POLL_TICKS) {
+            return;
+        }
+        tick = 0;
+        if (knownBridgeInstalled == null) {
+            knownBridgeInstalled = knownIds().stream().anyMatch(ModList.get()::isLoaded);
+        }
+        if ((knownBridgeInstalled || !extraMods().isEmpty()) && evaluate()) {
+            Leader.update(server);
+            com.drehverschluss.runelessrpg_bridge.core.network.BridgeNetwork.sendToAll();
+        }
+    }
 
     /**
      * Looks at all bridges again (their switches can change at runtime).

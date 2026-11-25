@@ -1,16 +1,20 @@
 package com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau;
 
+import com.drehverschluss.runelessrpg.api.ManaStorage;
 import com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau.client.ArsClientHooks;
 import com.drehverschluss.runelessrpg_bridge.api.AdapterStatus;
 import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
 import com.drehverschluss.runelessrpg_bridge.api.ConflictCheck;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
 import com.drehverschluss.runelessrpg_bridge.core.ArsNSpells;
+import com.drehverschluss.runelessrpg_bridge.core.Attributes;
 import com.drehverschluss.runelessrpg_bridge.core.BridgeConfig;
 import com.drehverschluss.runelessrpg_bridge.core.Reflect;
 import java.util.List;
 import java.util.Locale;
 import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -25,7 +29,9 @@ import org.jetbrains.annotations.Nullable;
  * Adapter for Ars Nouveau: the description part. This class uses no class of Ars and is created also while Ars is
  * missing (its config section stays). The hooks that use Ars classes ({@link ArsHooks}, {@link ArsEvents},
  * {@link ArsLeech}, {@link ArsClientHooks}, the mixins) are only reached from methods the core calls while Ars is loaded.
- * In this version Ars only follows the leading pool (RunelessRPG or Iron's); it cannot lead it yet.
+ * Ars follows the leading pool (RunelessRPG or Iron's) or leads it itself ({@code manaSystem = ars_nouveau}): then Ars' mana is
+ * RunelessRPG's storage ({@link ArsStorage}), Ars runs as without this bridge (its regeneration, progress, gear, familiars'
+ * reserve and rules for respawn and death) and the other mods' bonuses become modifiers on Ars' own attributes.
  */
 public final class ArsAdapter implements ManaAdapter {
     public static final String ID = "ars_nouveau";
@@ -42,6 +48,8 @@ public final class ArsAdapter implements ManaAdapter {
     static ModConfigSpec.BooleanValue FORWARD_INSUFFICIENT_FLASH;
 
     static AdapterStatus status;
+    /** Players for whom Ars leads the pool (server); the first bonus while leading computes Ars' max again. */
+    static final Set<UUID> LEADING = ConcurrentHashMap.newKeySet();
 
     @Override
     public String modId() {
@@ -72,16 +80,46 @@ public final class ArsAdapter implements ManaAdapter {
     }
 
     @Override
+    public boolean canLead() {
+        return true;
+    }
+
+    /** Ars' mana as RunelessRPG's storage (only called while Ars is loaded). */
+    @Override
+    public ManaStorage createStorage() {
+        return ArsStorage.INSTANCE;
+    }
+
+    /**
+     * While Ars leads: the other mods' bonuses as modifiers of the same operation on {@code ars_nouveau.perk.max_mana} and
+     * {@code ars_nouveau.perk.mana_regen} (flat regeneration included, Ars regenerates it); Ars' max is computed again at
+     * once when they change. No reserve modifier: Ars takes its familiars' reserve off its max itself.
+     */
+    @Override
+    public void applyBonus(Player player, BridgeBonus bonus) {
+        boolean changed = Attributes.applyBridge(player, MAX_MANA, MANA_REGEN, MANA_REGEN, bonus);
+        if (!leading()) {
+            LEADING.remove(player.getUUID());
+            return;
+        }
+        // the first bonus while Ars leads, or a changed one: Ars' max at once (Ars itself recomputes it every few ticks)
+        if (LEADING.add(player.getUUID()) | changed) {
+            ArsHooks.refreshMax(player);
+        }
+    }
+
+    @Override
     public void defineConfig(ModConfigSpec.Builder b) {
         BRIDGE_PROGRESSION = b.comment(
                         "Ars progress counts for the leading pool too while Ars does not lead: max mana and regeneration from learned",
                         "glyphs and the spell book tier (Ars' glyphmax, tierMax, glyphRegen, tierRegen), converted with manaFactor",
-                        "(50 glyphs and tier 3: +180 max mana and +3.9/s in RunelessRPG mana). Off: only gear counts.")
+                        "(50 glyphs and tier 3: +180 max mana and +3.9/s in RunelessRPG mana). Off: only gear counts. While Ars leads,",
+                        "its progress works as without this bridge.")
                 .translation(BridgeConfig.key("bridgeProgression"))
                 .define("bridgeProgression", true);
         APPLY_FAMILIAR_RESERVE = b.comment(
                         "Mana that Ars familiars reserve is taken from the shared max mana (as a percent modifier on the leading pool,",
-                        "so the bar shows it).")
+                        "so the bar shows it). While Ars leads, Ars takes the reserve off its max itself.")
                 .translation(BridgeConfig.key("applyFamiliarReserve"))
                 .define("applyFamiliarReserve", true);
         DISABLE_OWN_REGEN = b.comment("While Ars does not lead: turn off Ars' own mana regeneration for players; the leading pool regenerates.")
@@ -155,14 +193,16 @@ public final class ArsAdapter implements ManaAdapter {
     }
 
     /**
-     * Known bridges on the Ars side (checked with their jars, plan 9.1). Ars 'n Spells: off while its mana unification is
-     * on in any joining mode (in ISS_PRIMARY only the Iron's adapter runs in a chain); Ars Mana Bridge: always; Unified
-     * Mana: while its Ars integration is on.
+     * Known bridges on the Ars side (checked with their jars, plan 9.1). Ars 'n Spells: active while its mana unification
+     * is on in a joining mode; in ARS_PRIMARY Ars is its one pool, so this adapter stays on in a chain
+     * ({@code chainWithArsNSpells}; in ISS_PRIMARY only the Iron's adapter runs). Ars Mana Bridge: always; Unified Mana:
+     * while its Ars integration is on.
      */
     @Override
     public List<ConflictCheck> conflicts() {
         return List.of(
-                new ConflictCheck("ars_n_spells", ArsNSpells::unificationActive),
+                new ConflictCheck("ars_n_spells", ArsNSpells::unificationActive,
+                        () -> BridgeConfig.get(BridgeConfig.CHAIN_WITH_ARS_N_SPELLS, true) && ArsNSpells.arsPrimary()),
                 ConflictCheck.always("arsmanabridge"),
                 new ConflictCheck("unifiedmana", () -> {
                     try {
@@ -181,6 +221,11 @@ public final class ArsAdapter implements ManaAdapter {
     /** Ars is connected: costs, leech and converted displays apply. */
     static boolean connected() {
         return status != null && status.isConnected();
+    }
+
+    /** Ars is connected and leads the pool ({@code manaSystem = ars_nouveau}). */
+    static boolean leading() {
+        return status != null && status.isConnected() && status.isLeading();
     }
 
     static boolean bridgeProgression() {

@@ -21,7 +21,7 @@
   "runelessrpg_bridge.configuration.conflictingMods": "Weitere andere Brücken",
   "runelessrpg_bridge.configuration.ignoreConflicts": "Andere Brücken ignorieren",
   "runelessrpg_bridge.configuration.notifyConflictsInChat": "Operatoren über andere Brücken informieren",
-  "runelessrpg_bridge.configuration.chainWithArsNSpells": "Kette mit Ars 'n Spells (ISS_PRIMARY)",
+  "runelessrpg_bridge.configuration.chainWithArsNSpells": "Kette mit Ars 'n Spells (iss_primary, ars_primary)",
   "runelessrpg_bridge.configuration.enabled": "Mit dem gemeinsamen Vorrat verbinden",
   "runelessrpg_bridge.configuration.manaFactor": "Mana-Faktor (-1 = automatisch)",
   "runelessrpg_bridge.configuration.applyManaCost": "Mana Cost gilt",

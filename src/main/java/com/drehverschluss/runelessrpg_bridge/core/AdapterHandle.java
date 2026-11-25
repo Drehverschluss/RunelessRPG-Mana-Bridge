@@ -120,7 +120,17 @@ public final class AdapterHandle implements AdapterStatus {
             return "disabled in the config";
         }
         if (!conflict.isEmpty() && !BridgeConfig.get(BridgeConfig.IGNORE_CONFLICTS, false)) {
-            return "another bridge is active: " + conflict;
+            return "another bridge is active: " + conflict + chainNote();
+        }
+        return "";
+    }
+
+    /** "; in the chain with X only the Y adapter runs" if another adapter stays on in a chain with the same bridge. */
+    private String chainNote() {
+        for (AdapterHandle other : Adapters.foreign()) {
+            if (other != this && !other.chained().isEmpty() && conflict.contains(other.chained())) {
+                return "; in the chain with " + other.chained() + " only the " + other.adapter().displayName() + " adapter runs";
+            }
         }
         return "";
     }
