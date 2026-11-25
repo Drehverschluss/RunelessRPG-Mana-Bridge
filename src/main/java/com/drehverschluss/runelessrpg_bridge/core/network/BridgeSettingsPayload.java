@@ -9,15 +9,15 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 
 /**
- * Server values the client needs for its own checks and displays: leader, debt rule and the state of every adapter.
- * NeoForge sends the server config only once at login, so this payload is sent at login, after a config reload and
- * whenever an adapter turns on or off.
+ * Server values the client needs for its own checks and displays: leading pool, debt rule and the state of every
+ * adapter. NeoForge sends the server config only once at login, so this payload is sent at login, after a config reload
+ * and whenever an adapter or the leader changes.
  */
 public record BridgeSettingsPayload(String leader, boolean foreignSpellsUseDebt, List<AdapterState> adapters) implements CustomPacketPayload {
     public static final Type<BridgeSettingsPayload> TYPE = new Type<>(ResourceLocation.fromNamespaceAndPath(ManaBridge.MODID, "settings"));
 
-    /** State of one following adapter: active, configured factor (-1 = auto) and whether mana_cost applies. */
-    public record AdapterState(String modId, boolean active, double manaFactor, boolean applyManaCost) {}
+    /** State of one adapter: connected (leading or following), configured factor (-1 = auto) and whether mana_cost applies. */
+    public record AdapterState(String modId, boolean connected, double manaFactor, boolean applyManaCost) {}
 
     public static final StreamCodec<FriendlyByteBuf, BridgeSettingsPayload> CODEC = StreamCodec.of(BridgeSettingsPayload::write, BridgeSettingsPayload::read);
 
@@ -27,7 +27,7 @@ public record BridgeSettingsPayload(String leader, boolean foreignSpellsUseDebt,
         buf.writeVarInt(p.adapters.size());
         for (AdapterState a : p.adapters) {
             buf.writeUtf(a.modId());
-            buf.writeBoolean(a.active());
+            buf.writeBoolean(a.connected());
             buf.writeDouble(a.manaFactor());
             buf.writeBoolean(a.applyManaCost());
         }

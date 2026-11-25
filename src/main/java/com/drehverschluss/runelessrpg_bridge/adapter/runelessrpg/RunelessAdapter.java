@@ -1,5 +1,9 @@
 package com.drehverschluss.runelessrpg_bridge.adapter.runelessrpg;
 
+import com.drehverschluss.runelessrpg.api.ManaBonus;
+import com.drehverschluss.runelessrpg.api.RunelessApi;
+import com.drehverschluss.runelessrpg_bridge.ManaBridge;
+import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
 import com.drehverschluss.runelessrpg_bridge.core.Adapters;
 import com.drehverschluss.runelessrpg_bridge.core.Attributes;
@@ -12,15 +16,22 @@ import net.spell_engine.api.spell.container.SpellContainerHelper;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * RunelessRPG itself as an adapter. It leads the pool in this version: its built-in storage holds the mana, all others
- * pay through RunelessRPG's API. Only RunelessRPG's API and attribute ids are used, never its internal classes.
+ * RunelessRPG itself as an adapter. It leads the pool by default with its built-in storage; while another mod leads,
+ * its bonuses (modifiers on {@code runelessrpg:max_mana} and {@code runelessrpg:mana_regen}) go to that mod through the
+ * bridge (plan 4.6). Only RunelessRPG's API and attribute ids are used, never its internal classes.
  */
 public final class RunelessAdapter implements ManaAdapter {
     public static final String MAX_MANA = "runelessrpg:max_mana";
+    public static final String MANA_REGEN = "runelessrpg:mana_regen";
 
     @Override
     public String modId() {
         return Adapters.RUNELESS;
+    }
+
+    @Override
+    public String displayName() {
+        return "RunelessRPG";
     }
 
     /** RunelessRPG sets the base value of {@code runelessrpg:max_mana} from its config {@code baseMaxMana} (default 20). */
@@ -48,5 +59,21 @@ public final class RunelessAdapter implements ManaAdapter {
         }
         SpellContainer container = SpellContainerHelper.containerFromItemStack(stack);
         return container != null && container.isValid();
+    }
+
+    /** Modifiers on RunelessRPG's attributes without the base value and without the bridge's own (in RunelessRPG mana). */
+    @Override
+    public BridgeBonus readBonus(Player player) {
+        ManaBonus bonus = RunelessApi.getManaBonus(player, ManaBridge.MODID);
+        ManaBonus.Part max = bonus.maxMana();
+        ManaBonus.Part regen = bonus.manaRegen();
+        return new BridgeBonus(max.addValue(), max.addMultipliedBase(), max.multiplyTotal(),
+                regen.addValue(), regen.addMultipliedBase(), regen.multiplyTotal());
+    }
+
+    /** While RunelessRPG leads: modifiers of the same operations on its two attributes (flat regeneration too). */
+    @Override
+    public void applyBonus(Player player, BridgeBonus bonus) {
+        Attributes.applyBridge(player, MAX_MANA, MANA_REGEN, MANA_REGEN, bonus);
     }
 }

@@ -27,6 +27,7 @@ public final class BridgeClient {
                 com.drehverschluss.runelessrpg_bridge.core.MixinConflicts.scan();
             });
         });
+        com.drehverschluss.runelessrpg_bridge.core.network.ClientBridgeState.setOnUpdate(DisplayManager::refresh);
         NeoForge.EVENT_BUS.addListener(DisplayManager::onRenderLayer);
         NeoForge.EVENT_BUS.addListener(DisplayManager::onClientTick);
         NeoForge.EVENT_BUS.addListener(DisplayManager::onLoggingOut);

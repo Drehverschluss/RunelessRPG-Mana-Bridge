@@ -28,9 +28,18 @@ public final class IronsHooks {
 
     private IronsHooks() {}
 
-    /** @return true if the switch applies to this player (real player, adapter active) */
+    /**
+     * @return true if the switch of Iron's own mana applies to this player: real player, Iron's follows the leading pool,
+     *         and Iron's storage is not RunelessRPG's storage (while the storage changes, RunelessRPG reads and writes
+     *         Iron's own value, which must not go through the switch again)
+     */
     public static boolean applies(@Nullable Player player) {
-        return IronsAdapter.active() && Pool.applies(ID, player);
+        return IronsAdapter.active() && Pool.applies(ID, player) && !IronsStorage.isActive();
+    }
+
+    /** @return true if costs, leech and converted displays apply to this player: real player, Iron's connected (leading or following) */
+    public static boolean connected(@Nullable Player player) {
+        return IronsAdapter.connected() && Pool.connected(ID, player);
     }
 
     public static boolean disableOwnRegen() {
@@ -80,7 +89,7 @@ public final class IronsHooks {
      * adventure mode) stay. A failure because of mana also flashes RunelessRPG's bar.
      */
     public static CastResult checkCast(AbstractSpell spell, int spellLevel, CastSource source, MagicData data, Player player, CastResult result) {
-        if (!applies(player) || !source.consumesMana() || data.getPlayerRecasts().hasRecastForSpell(spell.getSpellId())) {
+        if (!connected(player) || !source.consumesMana() || data.getPlayerRecasts().hasRecastForSpell(spell.getSpellId())) {
             return result;
         }
         boolean manaFailure = !result.isSuccess() && isManaError(result);
@@ -108,7 +117,7 @@ public final class IronsHooks {
      * RunelessRPG could pay two more ticks of the effective cost (same look-ahead as Iron's, with the debt rules).
      */
     public static float channelMana(ServerPlayer player, MagicData data, float ownMana) {
-        if (!applies(player)) {
+        if (!connected(player)) {
             return ownMana;
         }
         AbstractSpell spell = SpellRegistry.getSpell(data.getCastingSpellId());
@@ -121,7 +130,7 @@ public final class IronsHooks {
 
     /** Client check before casting from the item (only decides the hand animation; the server checks again). */
     public static int clientCastCost(Player player, int cost) {
-        if (!applies(player)) {
+        if (!connected(player)) {
             return cost;
         }
         return Pool.canAfford(player, ID, cost) ? 0 : Integer.MAX_VALUE;

@@ -10,12 +10,23 @@ import org.jetbrains.annotations.ApiStatus;
 @ApiStatus.Experimental
 public interface AdapterStatus {
     /**
-     * @return true if the adapter works right now: its mod is loaded, it is enabled in the config, its self test passed,
-     *         no other bridge blocks it and it does not lead the pool itself. All hooks of a following adapter check this
-     *         first and do nothing otherwise.
+     * @return true if the adapter is connected to the shared pool right now: its mod is loaded, it is enabled in the
+     *         config, its self test passed and no other bridge blocks it. Whether it leads or follows does not matter.
+     *         Costs of the mod's spells, Spell Mana Leech and converted displays check this.
      */
-    boolean isActive();
+    boolean isConnected();
 
-    /** @return why the adapter is off (empty while it is active), for logs */
+    /** @return true if the adapter's mod leads the shared pool right now ({@code manaSystem}) */
+    boolean isLeading();
+
+    /**
+     * @return true if the adapter follows the leading pool right now: connected and not leading. The switch of the mod's
+     *         own mana (reading, writing, own regeneration and respawn rule off, max redirected) checks this.
+     */
+    default boolean isActive() {
+        return isConnected() && !isLeading();
+    }
+
+    /** @return why the adapter is not connected (empty while it is), for logs */
     String reason();
 }

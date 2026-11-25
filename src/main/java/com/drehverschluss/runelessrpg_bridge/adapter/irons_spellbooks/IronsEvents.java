@@ -23,7 +23,7 @@ public final class IronsEvents {
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void onSpellCast(SpellOnCastEvent event) {
         try {
-            if (!(event.getEntity() instanceof ServerPlayer player) || !IronsHooks.applies(player)) {
+            if (!(event.getEntity() instanceof ServerPlayer player) || !IronsHooks.connected(player)) {
                 return;
             }
             if (!event.getCastSource().consumesMana()

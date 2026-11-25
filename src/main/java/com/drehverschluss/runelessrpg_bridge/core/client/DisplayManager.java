@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
  * RunelessRPG's display factor) and helpers that convert other mods' mana amounts into that unit.
  */
 public final class DisplayManager {
-    private static double appliedFactor = 1.0;
 
     private DisplayManager() {}
 
@@ -107,8 +106,15 @@ public final class DisplayManager {
 
     /** Display units per RunelessRPG mana (plan 5.1), for {@link RunelessApi#setDisplayFactor}. */
     public static double displayFactor(@Nullable Player player) {
+        if (player == null || !ClientBridgeState.received()) {
+            return 1.0; // no bridge on the server: RunelessRPG shows its own unit
+        }
         BridgeClientConfig.DisplayUnit unit = BridgeClientConfig.DISPLAY_UNIT.get();
-        if (unit == BridgeClientConfig.DisplayUnit.AUTO && player != null) {
+        if (unit == BridgeClientConfig.DisplayUnit.RUNELESS) {
+            return 1.0;
+        }
+        if (unit == BridgeClientConfig.DisplayUnit.AUTO) {
+            // exactly one bar of a mod that does not lead (also RunelessRPG's while another mod leads): its unit
             Set<String> chosen = chosenBars();
             if (chosen.size() == 1) {
                 String only = chosen.iterator().next();
@@ -121,27 +127,34 @@ public final class DisplayManager {
         return leaderUnit(player);
     }
 
-    /** Unit of the leading pool: RunelessRPG mana in this version. */
-    private static double leaderUnit(@Nullable Player player) {
+    /** Unit of the leading pool: 1 for RunelessRPG, 1 ÷ factor for another mod (5 for Iron's by default). */
+    private static double leaderUnit(Player player) {
         String leader = ClientBridgeState.leader();
-        if (leader.equals(Adapters.RUNELESS) || player == null) {
+        AdapterHandle handle = Adapters.getOrNull(leader);
+        if (leader.equals(Adapters.RUNELESS) || handle == null || !handle.isConnected()) {
             return 1.0;
         }
         return 1.0 / Pool.factor(player, leader);
     }
 
     static void onClientTick(ClientTickEvent.Post event) {
+        refresh();
+    }
+
+    /**
+     * Sets RunelessRPG's display factor if it differs from the current one: every client tick (client config changed)
+     * and at once when the server's values arrive (login, config reload, leader change).
+     */
+    public static void refresh() {
         LocalPlayer player = Minecraft.getInstance().player;
         double factor = player == null ? 1.0 : displayFactor(player);
-        if (factor != appliedFactor) {
-            appliedFactor = factor;
+        if (factor != RunelessApi.getDisplayFactor()) {
             RunelessApi.setDisplayFactor(factor);
         }
     }
 
     static void onLoggingOut(ClientPlayerNetworkEvent.LoggingOut event) {
         ClientBridgeState.reset();
-        appliedFactor = 1.0;
         RunelessApi.setDisplayFactor(1.0);
     }
 

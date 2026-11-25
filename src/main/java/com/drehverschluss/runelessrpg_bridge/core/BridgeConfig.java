@@ -5,8 +5,9 @@ import java.util.List;
 import net.neoforged.neoforge.common.ModConfigSpec;
 
 /**
- * Server config {@code runelessrpg_bridge-server.toml}: section {@code [general]} and one section per adapter of a loaded
- * mana mod. Values are read when used, so changes work without a restart; the client gets the values it needs through
+ * Server config {@code runelessrpg_bridge-server.toml}: section {@code [general]} and one section per known adapter,
+ * also for mods that are not installed (so their settings stay when the mod is added or removed). Values are read when
+ * used, so changes work without a restart; the client gets the values it needs through
  * {@link com.drehverschluss.runelessrpg_bridge.core.network.BridgeNetwork}.
  */
 public final class BridgeConfig {
@@ -22,8 +23,13 @@ public final class BridgeConfig {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.push("general");
         MANA_SYSTEM = b.comment(
-                        "Mod ID of the mana system that leads the shared pool, e.g. \"runelessrpg\".",
-                        "Only \"runelessrpg\" is supported in this version; any other value falls back to it with a warning.")
+                        "Mod ID of the mana system that leads the shared pool: " + quoted(Leader.candidates()) + ".",
+                        "The leading mod keeps its own base max mana, regeneration and respawn rule; the others pay from its pool",
+                        "and add their bonuses to it. Falls back to \"runelessrpg\" with a warning if the chosen mod is not installed,",
+                        "its adapter is off (enabled = false, self test, another bridge) or it cannot lead. Can be changed at runtime.",
+                        "While another mod leads, RunelessRPG's baseMaxMana and baseManaRegen have no effect on the pool (baseMaxMana",
+                        "still sets the automatic manaFactor). With \"irons_spellbooks\" the mana after a respawn follows Iron's",
+                        "manaSpawnPercent (default 0 = empty).")
                 .translation(key("manaSystem"))
                 .define("manaSystem", Adapters.RUNELESS);
         FOREIGN_SPELLS_USE_DEBT = b.comment(
@@ -45,11 +51,29 @@ public final class BridgeConfig {
                 .define("notifyConflictsInChat", true);
         b.pop();
 
-        for (AdapterHandle handle : Adapters.all()) {
-            if (handle.adapter().canLead() && handle.modId().equals(Adapters.RUNELESS)) {
-                continue; // RunelessRPG always leads in this version, no section needed
+        for (AdapterHandle handle : Adapters.known()) {
+            String name = handle.adapter().displayName();
+            if (handle.isRuneless()) {
+                b.comment("RunelessRPG's own bonuses while another mod leads the pool (manaSystem).").push(handle.modId());
+                handle.bridgeMaxMana = b.comment(
+                                "Modifiers on runelessrpg:max_mana (gear, enchantments, affixes) count for the leading pool: flat values",
+                                "converted into its unit (+25 -> +125 Iron's mana with the default factor 0.2).")
+                        .translation(key("bridgeMaxMana"))
+                        .define("bridgeMaxMana", true);
+                handle.bridgeManaRegen = b.comment(
+                                "Modifiers on runelessrpg:mana_regen count for the leading pool: flat values are paid into the pool",
+                                "besides its own regeneration (+0.25/s -> +1.25 Iron's mana/s), percent values multiply its regeneration.")
+                        .translation(key("bridgeManaRegen"))
+                        .define("bridgeManaRegen", true);
+                handle.bridgePercentBonuses = b.comment(
+                                "Percent modifiers on runelessrpg:max_mana (of the base value or of the total) count as the same percent",
+                                "on the leading pool. Off: only flat max mana counts.")
+                        .translation(key("bridgePercentBonuses"))
+                        .define("bridgePercentBonuses", true);
+                b.pop();
+                continue;
             }
-            b.comment("Adapter for " + handle.modId()).push(handle.modId());
+            b.comment("Adapter for " + name + ". Only has an effect while " + name + " is installed.").push(handle.modId());
             handle.enabled = b.comment("Connect this mod to the shared mana pool. Off: the mod keeps its own mana as without this bridge.")
                     .translation(key("enabled"))
                     .define("enabled", true);
@@ -61,10 +85,29 @@ public final class BridgeConfig {
             handle.applyManaCost = b.comment("runelessrpg:mana_cost (with its lower limit and Spell Infinity) applies to this mod's spells.")
                     .translation(key("applyManaCost"))
                     .define("applyManaCost", true);
+            handle.bridgeMaxMana = b.comment(
+                            "Max mana bonuses of this mod (modifiers on its max mana above the base value: gear, rings, upgrades, effects)",
+                            "count for the leading pool while this mod does not lead; flat values converted with manaFactor (+50 -> +10).")
+                    .translation(key("bridgeMaxMana"))
+                    .define("bridgeMaxMana", true);
+            handle.bridgeManaRegen = b.comment(
+                            "Mana regeneration bonuses of this mod count for the leading pool while this mod does not lead",
+                            "(Iron's mana_regen above 1.0 multiplies it: +15 % -> regeneration x 1.15).")
+                    .translation(key("bridgeManaRegen"))
+                    .define("bridgeManaRegen", true);
+            handle.bridgePercentBonuses = b.comment(
+                            "Percent modifiers on this mod's max mana (of the base value or of the total) count as the same percent",
+                            "on the leading pool. Off: only flat max mana counts.")
+                    .translation(key("bridgePercentBonuses"))
+                    .define("bridgePercentBonuses", true);
             handle.adapter().defineConfig(b);
             b.pop();
         }
         return b.build();
+    }
+
+    private static String quoted(List<String> ids) {
+        return String.join(" or ", ids.stream().map(id -> "\"" + id + "\"").toList());
     }
 
     public static String key(String option) {

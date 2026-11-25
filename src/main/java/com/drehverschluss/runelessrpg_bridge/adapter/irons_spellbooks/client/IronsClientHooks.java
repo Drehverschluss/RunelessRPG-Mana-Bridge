@@ -37,7 +37,7 @@ public final class IronsClientHooks {
 
     /** Iron's bar in "contextual" mode also shows while a casting item of another mod is held. */
     public static boolean showBar(Player player, boolean original) {
-        if (original || !player.level().isClientSide() || !IronsHooks.applies(player)) {
+        if (original || !player.level().isClientSide() || !IronsHooks.connected(player)) {
             return original;
         }
         return ClientConfigs.MANA_BAR_DISPLAY.get() == ManaBarOverlay.Display.Contextual && !player.isSpectator()
@@ -48,8 +48,9 @@ public final class IronsClientHooks {
 
     /** @return the player if amounts should be converted, else null */
     private static @Nullable LocalPlayer converting() {
-        LocalPlayer player = player();
-        return player != null && DisplayManager.convertTooltips() ? player : null;
+        // leading or following: Iron's amounts are always shown in the display unit (plan 5.1)
+        LocalPlayer player = Minecraft.getInstance().player;
+        return player != null && IronsHooks.connected(player) && DisplayManager.convertTooltips() ? player : null;
     }
 
     /** A cost of Iron's (own units) as shown: × mana_cost × factor × display factor. */

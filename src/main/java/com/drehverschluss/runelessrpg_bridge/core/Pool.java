@@ -29,13 +29,25 @@ public final class Pool {
         return player instanceof ServerPlayer || player.level().isClientSide();
     }
 
-    /** @return true if the adapter is active and the player is a real player */
+    /** @return true if the adapter follows the leading pool and the player is a real player (the switch applies) */
     public static boolean applies(String modId, @Nullable Player player) {
         if (!isRealPlayer(player)) {
             return false;
         }
         AdapterHandle handle = Adapters.getOrNull(modId);
         return handle != null && handle.isActive();
+    }
+
+    /**
+     * @return true if the adapter is connected (leading or following) and the player is a real player: costs of the
+     *         mod's spells, Spell Mana Leech and converted displays use this
+     */
+    public static boolean connected(String modId, @Nullable Player player) {
+        if (!isRealPlayer(player)) {
+            return false;
+        }
+        AdapterHandle handle = Adapters.getOrNull(modId);
+        return handle != null && handle.isConnected();
     }
 
     // ------------------------------------------------------------------ factor

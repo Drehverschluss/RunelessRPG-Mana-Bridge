@@ -1,15 +1,20 @@
 package com.drehverschluss.runelessrpg_bridge.core;
 
+import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
 
 /** Attributes of other mods by id only, so no class of those mods is needed. */
 public final class Attributes {
+    /** Below this difference a modifier amount counts as unchanged. */
+    private static final double SAME = 1.0E-9;
+
     private Attributes() {}
 
     public static @Nullable Holder<Attribute> holder(String id) {
@@ -34,5 +39,86 @@ public final class Attributes {
     /** @return true if {@code holder} is the attribute with this id */
     public static boolean is(@Nullable Holder<Attribute> holder, String id) {
         return holder != null && holder.unwrapKey().map(k -> k.location().toString().equals(id)).orElse(false);
+    }
+
+    public static @Nullable AttributeInstance instance(Player player, String id) {
+        Holder<Attribute> holder = holder(id);
+        return holder == null ? null : player.getAttribute(holder);
+    }
+
+    /** Id of a modifier of this bridge, e.g. {@code runelessrpg_bridge:bridge_max_flat}. */
+    public static ResourceLocation bridgeId(String path) {
+        return ResourceLocation.fromNamespaceAndPath(ManaBridge.MODID, path);
+    }
+
+    /**
+     * Modifiers of one attribute by operation, without the base value and without modifiers whose id has the
+     * namespace {@code excludedNamespace}.
+     *
+     * @return {add, base, total} (sum of ADD_VALUE, sum of ADD_MULTIPLIED_BASE, product of 1 + ADD_MULTIPLIED_TOTAL),
+     *         or {0, 0, 1} if the player lacks the attribute
+     */
+    public static double[] modifiersByOperation(Player player, String id, String excludedNamespace) {
+        AttributeInstance instance = instance(player, id);
+        double add = 0.0;
+        double base = 0.0;
+        double total = 1.0;
+        if (instance != null) {
+            for (AttributeModifier modifier : instance.getModifiers()) {
+                if (modifier.id().getNamespace().equals(excludedNamespace)) {
+                    continue;
+                }
+                switch (modifier.operation()) {
+                    case ADD_VALUE -> add += modifier.amount();
+                    case ADD_MULTIPLIED_BASE -> base += modifier.amount();
+                    case ADD_MULTIPLIED_TOTAL -> total *= 1.0 + modifier.amount();
+                }
+            }
+        }
+        return new double[] {add, base, total};
+    }
+
+    /**
+     * Sets the modifiers of the bridge on the leading mod's attributes: flat and percent max mana on {@code maxManaId},
+     * percent and total regeneration on {@code manaRegenId}, and flat regeneration there too if {@code flatRegenId} is
+     * not null. {@link com.drehverschluss.runelessrpg_bridge.api.BridgeBonus#NONE} removes them all.
+     */
+    public static void applyBridge(Player player, String maxManaId, String manaRegenId, @Nullable String flatRegenId,
+            com.drehverschluss.runelessrpg_bridge.api.BridgeBonus bonus) {
+        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_flat"), bonus.maxFlat(), AttributeModifier.Operation.ADD_VALUE);
+        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_base"), bonus.maxBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_total"), bonus.maxTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        if (flatRegenId != null) {
+            setBridgeModifier(player, flatRegenId, bridgeId("bridge_regen_flat"), bonus.regenFlat(), AttributeModifier.Operation.ADD_VALUE);
+        }
+        setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_base"), bonus.regenBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
+        setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_total"), bonus.regenTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+    }
+
+    /**
+     * Sets a transient modifier of this bridge: removed if {@code amount} is 0 (no effect), replaced only if the amount
+     * changed. Transient modifiers are never saved, so nothing stays on a player once the bridge is gone.
+     */
+    public static void setBridgeModifier(Player player, String attributeId, ResourceLocation modifierId, double amount,
+            AttributeModifier.Operation operation) {
+        AttributeInstance instance = instance(player, attributeId);
+        if (instance == null) {
+            return;
+        }
+        AttributeModifier current = instance.getModifier(modifierId);
+        boolean none = Math.abs(amount) < SAME || !Double.isFinite(amount);
+        if (none) {
+            if (current != null) {
+                instance.removeModifier(modifierId);
+            }
+            return;
+        }
+        if (current != null) {
+            if (current.operation() == operation && Math.abs(current.amount() - amount) < SAME) {
+                return;
+            }
+            instance.removeModifier(modifierId);
+        }
+        instance.addTransientModifier(new AttributeModifier(modifierId, amount, operation));
     }
 }

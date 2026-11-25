@@ -21,7 +21,7 @@ public final class SelfTest {
 
     /** Common part (both sides): classes and common mixins. */
     static void runCommon() {
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             String problem = check(handle);
             handle.setSelfTestProblem(problem);
             if (problem.isEmpty()) {
@@ -34,7 +34,7 @@ public final class SelfTest {
 
     /** Client part: mixins of the client list. A failure turns the adapter off on this client only. */
     public static void runClient() {
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             if (!handle.selfTestProblem().isEmpty()) {
                 continue; // already off with its warning
             }

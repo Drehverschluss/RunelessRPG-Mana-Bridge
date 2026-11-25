@@ -25,7 +25,7 @@ public final class Conflicts {
     static boolean evaluate() {
         boolean changed = false;
         List<String> extra = extraMods();
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             List<String> found = new ArrayList<>();
             for (ConflictCheck check : handle.adapter().conflicts()) {
                 if (ModList.get().isLoaded(check.modId()) && isActive(check)) {
@@ -39,7 +39,7 @@ public final class Conflicts {
             }
             String conflict = String.join(", ", found);
             if (!conflict.equals(handle.conflict())) {
-                boolean wasActive = handle.isActiveOnServer();
+                boolean wasActive = handle.isConnectedOnServer();
                 handle.setConflict(conflict);
                 changed = true;
                 if (!conflict.isEmpty()) {
@@ -49,7 +49,7 @@ public final class Conflicts {
                         ManaBridge.LOGGER.warn("Adapter {} is turned off because {} is active (another bridge at the same mana pool). "
                                 + "Set ignoreConflicts = true in runelessrpg_bridge-server.toml if your pack handles this.", handle.modId(), conflict);
                     }
-                } else if (!wasActive && handle.isActiveOnServer()) {
+                } else if (!wasActive && handle.isConnectedOnServer()) {
                     ManaBridge.LOGGER.info("Adapter {} is on again: no other bridge is active any more", handle.modId());
                 }
             }
@@ -84,7 +84,7 @@ public final class Conflicts {
                 || BridgeConfig.get(BridgeConfig.IGNORE_CONFLICTS, false)) {
             return;
         }
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             if (!handle.conflict().isEmpty() && handle.configEnabled()) {
                 player.sendSystemMessage(Component.translatable("runelessrpg_bridge.chat.conflict", name(handle.modId()), handle.conflict())
                         .withStyle(ChatFormatting.GOLD));
@@ -95,7 +95,7 @@ public final class Conflicts {
     /** Known mod ids of bridges, for logs. */
     static Set<String> knownIds() {
         Set<String> ids = new java.util.TreeSet<>();
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             handle.adapter().conflicts().forEach(c -> ids.add(c.modId()));
         }
         return ids;

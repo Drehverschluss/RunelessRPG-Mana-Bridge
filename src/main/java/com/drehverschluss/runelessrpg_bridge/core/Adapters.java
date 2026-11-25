@@ -10,8 +10,9 @@ import net.neoforged.fml.ModList;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * The list of adapters. A new mana mod only needs one line here and its own package under {@code adapter/}. The core
- * knows the adapters only by the class name, so an adapter class is never loaded while its mod is missing.
+ * The list of adapters. A new mana mod only needs one line here and its own package under {@code adapter/}. The
+ * description of every known adapter is created (it uses no class of its mod), so its config section exists even
+ * while the mod is missing; its hooks are only used while the mod is loaded.
  */
 public final class Adapters {
     /** Mod id of the mod whose pool leads when {@code manaSystem} cannot be used. */
@@ -27,16 +28,13 @@ public final class Adapters {
 
     private Adapters() {}
 
-    /** Creates the adapters of all loaded mods (mod construction). */
+    /** Creates the descriptions of all known adapters (mod construction). */
     static void create() {
         List<AdapterHandle> list = new ArrayList<>();
         for (Entry entry : KNOWN) {
-            if (!ModList.get().isLoaded(entry.modId())) {
-                continue;
-            }
             try {
                 ManaAdapter adapter = (ManaAdapter) Class.forName(entry.className()).getDeclaredConstructor().newInstance();
-                list.add(new AdapterHandle(adapter));
+                list.add(new AdapterHandle(adapter, ModList.get().isLoaded(entry.modId())));
             } catch (ReflectiveOperationException | LinkageError e) {
                 ManaBridge.LOGGER.warn("Adapter for {} could not be created, it stays off: {}", entry.modId(), e.toString());
             }
@@ -44,19 +42,30 @@ public final class Adapters {
         handles = Collections.unmodifiableList(list);
     }
 
-    /** @return all created adapters, RunelessRPG first */
-    public static List<AdapterHandle> all() {
+    /** @return all known adapters (also those whose mod is missing), RunelessRPG first */
+    public static List<AdapterHandle> known() {
         return handles;
     }
 
-    /** @return the adapters that follow the leading pool (all except the leader) */
-    public static List<AdapterHandle> followers() {
-        return handles.stream().filter(h -> !h.isLeader()).toList();
+    /** @return the adapters whose mod is loaded, RunelessRPG first */
+    public static List<AdapterHandle> all() {
+        return handles.stream().filter(AdapterHandle::loaded).toList();
     }
 
+    /** @return the adapters of loaded mana mods other than RunelessRPG */
+    public static List<AdapterHandle> foreign() {
+        return handles.stream().filter(h -> h.loaded() && !h.isRuneless()).toList();
+    }
+
+    /** @return the loaded adapters that do not lead the pool right now */
+    public static List<AdapterHandle> followers() {
+        return all().stream().filter(h -> !h.isLeader()).toList();
+    }
+
+    /** @return a loaded adapter */
     public static Optional<AdapterHandle> get(String modId) {
         for (AdapterHandle handle : handles) {
-            if (handle.modId().equals(modId)) {
+            if (handle.loaded() && handle.modId().equals(modId)) {
                 return Optional.of(handle);
             }
         }
@@ -67,16 +76,28 @@ public final class Adapters {
         return get(modId).orElse(null);
     }
 
-    /**
-     * @return the mod id of the leading pool. Only RunelessRPG can lead in this version; any other value of
-     *         {@code manaSystem} falls back to it (with a warning when the config is loaded).
-     */
+    /** @return a known adapter, loaded or not */
+    public static @Nullable AdapterHandle knownOrNull(String modId) {
+        for (AdapterHandle handle : handles) {
+            if (handle.modId().equals(modId)) {
+                return handle;
+            }
+        }
+        return null;
+    }
+
+    /** @return the mod id of the leading pool on this side (server: {@link Leader#id()}, client: as the server sent) */
     public static String leaderId() {
+        for (AdapterHandle handle : all()) {
+            if (handle.isLeader()) {
+                return handle.modId();
+            }
+        }
         return RUNELESS;
     }
 
     /** @return true if at least one mana mod besides RunelessRPG is loaded */
     public static boolean hasFollowers() {
-        return handles.stream().anyMatch(h -> !h.modId().equals(RUNELESS));
+        return !foreign().isEmpty();
     }
 }

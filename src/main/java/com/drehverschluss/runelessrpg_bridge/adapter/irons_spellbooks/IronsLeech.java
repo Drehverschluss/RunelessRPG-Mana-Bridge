@@ -41,7 +41,7 @@ public final class IronsLeech implements SpellHitPredicate {
 
     @Override
     public boolean isDirectSpellHit(DamageSource source, LivingEntity target, ServerPlayer player) {
-        if (!IronsAdapter.spellManaLeech() || !IronsHooks.applies(player) || !(source instanceof SpellDamageSource)) {
+        if (!IronsAdapter.spellManaLeech() || !IronsHooks.connected(player) || !(source instanceof SpellDamageSource)) {
             return false;
         }
         if (source.getEntity() != player) {

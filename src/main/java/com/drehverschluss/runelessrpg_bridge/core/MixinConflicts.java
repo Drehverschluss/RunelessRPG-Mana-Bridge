@@ -20,7 +20,7 @@ public final class MixinConflicts {
     private MixinConflicts() {}
 
     public static void scan() {
-        for (AdapterHandle handle : Adapters.followers()) {
+        for (AdapterHandle handle : Adapters.foreign()) {
             // owner mod -> classes of ours its mixins also change
             Map<String, Set<String>> shared = new TreeMap<>();
             Set<String> targets = new TreeSet<>();

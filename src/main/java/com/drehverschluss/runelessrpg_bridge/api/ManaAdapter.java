@@ -1,5 +1,6 @@
 package com.drehverschluss.runelessrpg_bridge.api;
 
+import com.drehverschluss.runelessrpg.api.ManaStorage;
 import java.util.List;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
@@ -14,8 +15,10 @@ import org.jetbrains.annotations.Nullable;
  * later Ars Nouveau) is one adapter. The core of RunelessRPG Mana Bridge only talks to adapters through this interface
  * and never touches a class of another mod.
  * <p>
- * An adapter object is only created when its mod is loaded. Its own classes that use the mod's classes must only be
- * loaded from methods of this interface that run while the mod is present.
+ * An adapter has two parts. <b>This interface is the description</b> (mod id, config section, other bridges, bar):
+ * its object is created for every known mod, also while the mod is missing, so that the config section stays. It must
+ * not use any class of the mod. <b>The hooks</b> (mixins, listeners, the storage, everything with the mod's classes)
+ * are only reached through the methods marked "only while the mod is loaded".
  * <p>
  * All amounts are in the adapter's own mana units unless a method says otherwise. The core converts them with the
  * factor "1 own mana = factor RunelessRPG mana".
@@ -27,27 +30,34 @@ public interface ManaAdapter {
     /** @return the mod id of the mana mod; also the name of the adapter's config section */
     String modId();
 
+    /** @return the mod's name for config comments and logs (the mod may be missing, so it cannot be read from it) */
+    default String displayName() {
+        return modId();
+    }
+
     /**
      * Base max mana of the mod for this player, in the mod's own units (before any bonus), e.g. 100 for Iron's.
-     * The automatic factor is RunelessRPG base max mana ÷ this value.
+     * The automatic factor is RunelessRPG base max mana ÷ this value. Only while the mod is loaded.
      *
      * @param player the player, or {@code null} for the default (e.g. the attribute's default value)
      */
     double baseMaxMana(@Nullable Player player);
 
     /**
-     * Adds the adapter's own options to its config section (server config). The core adds {@code enabled},
-     * {@code manaFactor} and {@code applyManaCost} for every adapter that does not lead; these come after them.
+     * Adds the adapter's own options to its config section (server config); called for every known adapter, also
+     * while its mod is missing. The core adds {@code enabled}, {@code manaFactor}, {@code applyManaCost} and the bridge
+     * switches first.
      */
     default void defineConfig(ModConfigSpec.Builder builder) {}
 
     /**
-     * Called once on the mod bus during mod construction, after the config is defined. Register listeners here; they
-     * must check {@link AdapterStatus#isActive()} themselves, because an adapter can be switched off at any time.
+     * Only while the mod is loaded: called once on the mod bus during mod construction, after the config is defined.
+     * Register listeners here; they must check the {@link AdapterStatus} themselves, because the state can change at
+     * any time.
      */
     default void init(IEventBus modBus, AdapterStatus status) {}
 
-    /** Client-only part of {@link #init}, called during client setup; never called on a dedicated server. */
+    /** Only while the mod is loaded: client part of {@link #init}, called during client setup; never on a dedicated server. */
     default void initClient(IEventBus modBus, AdapterStatus status) {}
 
     /**
@@ -69,8 +79,8 @@ public interface ManaAdapter {
     }
 
     /**
-     * Whether the stack is a casting item of this mod (spell book, spell weapon). Mana bars of other mods in a
-     * "contextual" mode also show while such an item is held.
+     * Only while the mod is loaded: whether the stack is a casting item of this mod (spell book, spell weapon). Mana
+     * bars of other mods in a "contextual" mode also show while such an item is held.
      */
     default boolean isCastingItem(ItemStack stack) {
         return false;
@@ -81,11 +91,32 @@ public interface ManaAdapter {
         return List.of();
     }
 
-    /**
-     * Whether this mod can lead the shared pool ({@code manaSystem}). Only RunelessRPG can lead so far; other mods get
-     * a storage for RunelessRPG's API in a later version.
-     */
+    /** Whether this mod can lead the shared pool ({@code manaSystem}); then {@link #createStorage()} must work. */
     default boolean canLead() {
         return false;
     }
+
+    /**
+     * Only while the mod is loaded, server side: the storage for RunelessRPG's API while this mod leads (called each time
+     * it becomes the leader). RunelessRPG's own adapter returns {@code null} (its built-in storage).
+     */
+    default @Nullable ManaStorage createStorage() {
+        return null;
+    }
+
+    /**
+     * Only while the mod is loaded: the mod's own bonuses above its base values for this player, in its own units, as
+     * modifiers by operation. Modifiers of this bridge (namespace {@code runelessrpg_bridge}) must be left out, so
+     * nothing counts twice. Called every server tick while the adapter is connected and does not lead.
+     */
+    default BridgeBonus readBonus(Player player) {
+        return BridgeBonus.NONE;
+    }
+
+    /**
+     * Only while the mod is loaded: the bonus of all other connected mods while this mod leads, in this mod's units;
+     * {@link BridgeBonus#NONE} while it does not lead (then all modifiers of the bridge must go). Called every server tick;
+     * only change something if the value changed.
+     */
+    default void applyBonus(Player player, BridgeBonus bonus) {}
 }
