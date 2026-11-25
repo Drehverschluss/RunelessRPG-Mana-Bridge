@@ -16,6 +16,8 @@ public final class BridgeConfig {
     public static ModConfigSpec.ConfigValue<List<? extends String>> CONFLICTING_MODS;
     public static ModConfigSpec.BooleanValue IGNORE_CONFLICTS;
     public static ModConfigSpec.BooleanValue NOTIFY_CONFLICTS_IN_CHAT;
+    /** The whole server config, read section by section by the status command. */
+    static ModConfigSpec SPEC;
 
     private BridgeConfig() {}
 
@@ -103,7 +105,8 @@ public final class BridgeConfig {
             handle.adapter().defineConfig(b);
             b.pop();
         }
-        return b.build();
+        SPEC = b.build();
+        return SPEC;
     }
 
     private static String quoted(List<String> ids) {

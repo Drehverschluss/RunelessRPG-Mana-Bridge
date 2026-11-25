@@ -17,6 +17,8 @@ import org.jetbrains.annotations.Nullable;
 public final class Leader {
     private static volatile String id = Adapters.RUNELESS;
     private static String lastNotice = "";
+    /** Why the configured {@code manaSystem} cannot lead right now (empty if it leads), for the status command. */
+    private static volatile String problem = "";
 
     private Leader() {}
 
@@ -25,8 +27,13 @@ public final class Leader {
         return id;
     }
 
+    /** @return why the configured {@code manaSystem} cannot lead (empty if it leads or is RunelessRPG) */
+    public static String problem() {
+        return problem;
+    }
+
     /** @return the value of {@code manaSystem} as a mod id */
-    static String configured() {
+    public static String configured() {
         try {
             String value = BridgeConfig.MANA_SYSTEM.get().trim().toLowerCase(Locale.ROOT);
             return value.isEmpty() ? Adapters.RUNELESS : value;
@@ -63,6 +70,7 @@ public final class Leader {
             }
         }
         String notice = wanted + "|" + problem;
+        Leader.problem = problem;
         if (!notice.equals(lastNotice)) {
             lastNotice = notice;
             if (!problem.isEmpty()) {
@@ -83,6 +91,7 @@ public final class Leader {
             RunelessApi.resetStorage();
         }
         lastNotice = "";
+        problem = "";
     }
 
     private static void switchTo(@Nullable MinecraftServer server, String next) {
@@ -97,6 +106,7 @@ public final class Leader {
             }
             if (storage == null) {
                 ManaBridge.LOGGER.warn("manaSystem = \"{}\" has no mana storage, RunelessRPG leads the mana pool", next);
+                problem = "its mana storage could not be created";
                 if (old.equals(Adapters.RUNELESS)) {
                     return;
                 }

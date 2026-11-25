@@ -4,6 +4,8 @@ import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.core.mixin.MixinRecord;
 import java.lang.reflect.Method;
 import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -17,9 +19,18 @@ import org.spongepowered.asm.mixin.transformer.meta.MixinMerged;
  * classes are loaded, and reads the {@link MixinMerged} marks Mixin puts on every method it adds to a class.
  */
 public final class MixinConflicts {
+    /** Findings of the last scan for the status command: "owner: [classes]" per adapter mod id. */
+    private static volatile Map<String, List<String>> found = Map.of();
+
     private MixinConflicts() {}
 
+    /** @return the findings of the last scan for this adapter (empty if none) */
+    public static List<String> found(String modId) {
+        return found.getOrDefault(modId, List.of());
+    }
+
     public static void scan() {
+        Map<String, List<String>> result = new TreeMap<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             // owner mod -> classes of ours its mixins also change
             Map<String, Set<String>> shared = new TreeMap<>();
@@ -48,12 +59,19 @@ public final class MixinConflicts {
                     ManaBridge.LOGGER.debug("Mixin conflict scan of {} not possible: {}", target, e.toString());
                 }
             }
+            List<String> lines = new ArrayList<>();
             for (Map.Entry<String, Set<String>> entry : shared.entrySet()) {
+                lines.add((ModList.get().isLoaded(entry.getKey()) ? Conflicts.name(entry.getKey()) + " (" + entry.getKey() + ")" : entry.getKey())
+                        + ": " + entry.getValue());
                 ManaBridge.LOGGER.warn("{} also changes classes the {} adapter hooks: {}. If it is a mana bridge, add its mod ID to conflictingMods.",
                         ModList.get().isLoaded(entry.getKey()) ? Conflicts.name(entry.getKey()) + " (" + entry.getKey() + ")" : entry.getKey(),
                         handle.modId(), entry.getValue());
             }
+            if (!lines.isEmpty()) {
+                result.put(handle.modId(), List.copyOf(lines));
+            }
         }
+        found = Map.copyOf(result);
     }
 
     /** Mod id whose jar contains the class, or null. */

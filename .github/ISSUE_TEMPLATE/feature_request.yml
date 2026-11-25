@@ -1,0 +1,19 @@
+name: Feature request
+description: An idea for the bridge, for example another mana mod it should connect.
+title: "[Idea] "
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would you like?
+      description: For another mana mod, please name it and link its CurseForge or Modrinth page.
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why or how would you use it?
+      description: Your pack or setup, and what should happen in the game.
+    validations:
+      required: false

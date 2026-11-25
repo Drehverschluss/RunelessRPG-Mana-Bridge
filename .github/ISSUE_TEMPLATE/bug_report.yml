@@ -1,0 +1,111 @@
+name: Bug report
+description: Something about the shared mana pool does not work as expected.
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for testing RunelessRPG Mana Bridge. This is a beta, and I do not play with Iron's Spells 'n Spellbooks myself, so your report is the test.
+
+        The most useful part is the output of `/runelessrpg_bridge status`. Every player can run it in chat. Click **[Copy as text for a bug report]** at the end of the output and paste it below. Operators can add a player name (`/runelessrpg_bridge status <player>`), the server console too.
+  - type: input
+    id: minecraft
+    attributes:
+      label: Minecraft and NeoForge version
+      placeholder: "Minecraft 1.21.1, NeoForge 21.1.x"
+    validations:
+      required: true
+  - type: input
+    id: bridge
+    attributes:
+      label: RunelessRPG Mana Bridge version
+      placeholder: "0.1.0"
+    validations:
+      required: true
+  - type: input
+    id: runelessrpg
+    attributes:
+      label: RunelessRPG version
+      placeholder: "0.4.0"
+    validations:
+      required: true
+  - type: input
+    id: irons
+    attributes:
+      label: Iron's Spells 'n Spellbooks version
+      description: Leave empty if it is not installed.
+      placeholder: "1.21.1-3.16.4"
+  - type: textarea
+    id: other-mods
+    attributes:
+      label: Other magic and mana mods
+      description: Iron's addons, Ars Nouveau, other mana bridges (Ars 'n Spells, Unified Mana …), mods that change mana or spell costs. A full mod list or modpack name with version helps too.
+    validations:
+      required: false
+  - type: dropdown
+    id: mana-system
+    attributes:
+      label: manaSystem
+      description: The leading mana pool in `config/runelessrpg_bridge-server.toml`.
+      options:
+        - runelessrpg (default)
+        - irons_spellbooks
+        - something else (see the status output)
+    validations:
+      required: true
+  - type: textarea
+    id: status
+    attributes:
+      label: Output of /runelessrpg_bridge status
+      description: Run the command in chat, click "[Copy as text for a bug report]" and paste it here. If the server cannot start, write that instead.
+      render: text
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What you saw, with numbers if you have them (mana before and after, the cost shown in the tooltip …).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Hold an Iron's spell book with Fireball
+        2. Cast it with 20 mana
+        3. ...
+    validations:
+      required: true
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Singleplayer or server?
+      options:
+        - Singleplayer
+        - Dedicated server, the bridge on the server and on the client
+        - Dedicated server, the bridge only on the server
+        - Dedicated server, the bridge only on the client
+        - LAN or another host
+    validations:
+      required: true
+  - type: input
+    id: client-config
+    attributes:
+      label: Changed client options (optional)
+      description: Only if you changed manaDisplay, displayUnit or another option in `config/runelessrpg_bridge-client.toml`.
+      placeholder: "manaDisplay = irons_spellbooks"
+  - type: input
+    id: log
+    attributes:
+      label: Log
+      description: Upload `logs/latest.log` (and the crash report, if there is one) to https://mclo.gs and paste the link here.
+      placeholder: "https://mclo.gs/..."

@@ -57,7 +57,7 @@ public final class Conflicts {
         return changed;
     }
 
-    private static boolean isActive(ConflictCheck check) {
+    static boolean isActive(ConflictCheck check) {
         try {
             return check.isActive().getAsBoolean();
         } catch (RuntimeException | LinkageError e) {
@@ -65,7 +65,7 @@ public final class Conflicts {
         }
     }
 
-    private static List<String> extraMods() {
+    static List<String> extraMods() {
         try {
             return BridgeConfig.CONFLICTING_MODS.get().stream().map(String::valueOf).map(String::trim).filter(s -> !s.isEmpty()).toList();
         } catch (IllegalStateException e) {

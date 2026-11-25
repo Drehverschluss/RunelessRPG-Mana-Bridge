@@ -10,6 +10,7 @@ import net.neoforged.fml.config.ModConfig;
 import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.RegisterCommandsEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
@@ -50,6 +51,7 @@ public final class Bridge {
             }
         });
         BonusBridge.register();
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, StatusCommand::register);
     }
 
     /** The config watcher runs on its own thread: everything that follows is done on the server thread. */
