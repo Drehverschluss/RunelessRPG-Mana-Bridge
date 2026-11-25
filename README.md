@@ -172,4 +172,4 @@ For every version I run an automated test: a dedicated server plays a script tic
 MIT, see [LICENSE](LICENSE). Credits and licenses of everything the bridge uses or refers to are in [CREDITS.md](CREDITS.md).
 
 - RunelessRPG Mana Bridge is not made by or affiliated with the authors of Iron's Spells 'n Spellbooks, Ars Nouveau or Spell Engine.
-- 📖 [Wiki](https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/wiki) · 🐞 [Issues](https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/issues) · CurseForge: coming soon
+- 📖 [Wiki](https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/wiki) · 🐞 [Issues](https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/issues) · 🔮 [CurseForge](https://www.curseforge.com/minecraft/mc-mods/runelessrpg-mana-bridge)

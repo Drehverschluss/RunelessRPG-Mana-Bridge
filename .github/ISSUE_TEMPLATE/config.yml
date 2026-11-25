@@ -3,3 +3,6 @@ contact_links:
   - name: Wiki
     url: https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/wiki
     about: Modes, configuration, commands and answers to common questions.
+  - name: CurseForge
+    url: https://www.curseforge.com/minecraft/mc-mods/runelessrpg-mana-bridge
+    about: Downloads, versions and the mod description.
