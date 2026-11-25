@@ -31,5 +31,8 @@ public final class BridgeClient {
         NeoForge.EVENT_BUS.addListener(DisplayManager::onRenderLayer);
         NeoForge.EVENT_BUS.addListener(DisplayManager::onClientTick);
         NeoForge.EVENT_BUS.addListener(DisplayManager::onLoggingOut);
+        // the server sends its config (conflictingMods) at login; then the mixin warnings of the client scan follow
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent.LoggingIn.class,
+                event -> com.drehverschluss.runelessrpg_bridge.core.MixinConflicts.warnUnknown());
     }
 }

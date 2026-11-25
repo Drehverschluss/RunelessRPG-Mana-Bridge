@@ -155,6 +155,8 @@ public final class IronsAdapter implements ManaAdapter {
                         () -> BridgeConfig.get(BridgeConfig.CHAIN_WITH_ARS_N_SPELLS, true) && ArsNSpells.issPrimary()),
                 // Ars Mana Bridge: no switch, always active
                 ConflictCheck.always("arsmanabridge"),
+                // Mana Unifier (Ars <-> Iron's through events, Ars is its pool): no switch, always active
+                ConflictCheck.always("manaunifier"),
                 // Mana Transform (Iron's <-> Dragon Survival): while ENABLED
                 new ConflictCheck("mana_transform", () -> {
                     try {

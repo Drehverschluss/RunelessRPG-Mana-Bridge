@@ -17,20 +17,59 @@ import org.spongepowered.asm.mixin.transformer.meta.MixinMerged;
  * Second safety for unknown bridges (plan 9.1): mixins of other mods on the same classes as an adapter's mixins. Only a
  * warning in the log, because harmless addons change these classes too. Runs after the self test, when the target
  * classes are loaded, and reads the {@link MixinMerged} marks Mixin puts on every method it adds to a class.
+ * <p>
+ * Known bridges (their own line in the log and the status) and mods listed in {@code conflictingMods} get no warning. The
+ * server config is not loaded yet when the scan runs, so the warnings follow later, once: at server start and, on a
+ * client, at login (the server sends its config then).
  */
 public final class MixinConflicts {
-    /** Findings of the last scan for the status command: "owner: [classes]" per adapter mod id. */
-    private static volatile Map<String, List<String>> found = Map.of();
+    /** Findings of the last scan: adapter mod id -> owner (mod id or mixin class) -> classes of the adapter it also changes. */
+    private static volatile Map<String, Map<String, Set<String>>> found = Map.of();
+    /** Owners already warned about per adapter, so every finding is logged once. */
+    private static final Set<String> WARNED = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     private MixinConflicts() {}
 
-    /** @return the findings of the last scan for this adapter (empty if none) */
+    /**
+     * @return the findings of the last scan for this adapter as "owner: [classes]", without known bridges and without mods
+     * listed in {@code conflictingMods} (empty if none)
+     */
     public static List<String> found(String modId) {
-        return found.getOrDefault(modId, List.of());
+        List<String> lines = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : found.getOrDefault(modId, Map.of()).entrySet()) {
+            if (!expected(entry.getKey())) {
+                lines.add(describe(entry.getKey()) + ": " + entry.getValue());
+            }
+        }
+        return lines;
+    }
+
+    /**
+     * Logs the findings of mods that are neither known bridges nor listed in {@code conflictingMods}, each once. Called when
+     * the server config is known (server start, client login).
+     */
+    public static void warnUnknown() {
+        for (Map.Entry<String, Map<String, Set<String>>> adapter : found.entrySet()) {
+            for (Map.Entry<String, Set<String>> entry : adapter.getValue().entrySet()) {
+                if (!expected(entry.getKey()) && WARNED.add(adapter.getKey() + "|" + entry.getKey())) {
+                    ManaBridge.LOGGER.warn("{} also changes classes the {} adapter hooks: {}. If it is a mana bridge, add its mod ID to conflictingMods.",
+                            describe(entry.getKey()), adapter.getKey(), entry.getValue());
+                }
+            }
+        }
+    }
+
+    /** A known bridge of any adapter or a mod listed in {@code conflictingMods}: it has its own line, no mixin warning. */
+    private static boolean expected(String owner) {
+        return Conflicts.knownIds().contains(owner) || Conflicts.extraMods().contains(owner);
+    }
+
+    private static String describe(String owner) {
+        return ModList.get().isLoaded(owner) ? Conflicts.name(owner) + " (" + owner + ")" : owner;
     }
 
     public static void scan() {
-        Map<String, List<String>> result = new TreeMap<>();
+        Map<String, Map<String, Set<String>>> result = new TreeMap<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             // owner mod -> classes of ours its mixins also change
             Map<String, Set<String>> shared = new TreeMap<>();
@@ -59,19 +98,11 @@ public final class MixinConflicts {
                     ManaBridge.LOGGER.debug("Mixin conflict scan of {} not possible: {}", target, e.toString());
                 }
             }
-            List<String> lines = new ArrayList<>();
-            for (Map.Entry<String, Set<String>> entry : shared.entrySet()) {
-                lines.add((ModList.get().isLoaded(entry.getKey()) ? Conflicts.name(entry.getKey()) + " (" + entry.getKey() + ")" : entry.getKey())
-                        + ": " + entry.getValue());
-                ManaBridge.LOGGER.warn("{} also changes classes the {} adapter hooks: {}. If it is a mana bridge, add its mod ID to conflictingMods.",
-                        ModList.get().isLoaded(entry.getKey()) ? Conflicts.name(entry.getKey()) + " (" + entry.getKey() + ")" : entry.getKey(),
-                        handle.modId(), entry.getValue());
-            }
-            if (!lines.isEmpty()) {
-                result.put(handle.modId(), List.copyOf(lines));
+            if (!shared.isEmpty()) {
+                result.put(handle.modId(), java.util.Collections.unmodifiableMap(shared));
             }
         }
-        found = Map.copyOf(result);
+        found = java.util.Collections.unmodifiableMap(result);
     }
 
     /** Mod id whose jar contains the class, or null. */

@@ -44,7 +44,7 @@ public final class BridgeConfig {
         CONFLICTING_MODS = b.comment(
                         "More mod IDs of bridges that touch the same mana pools. While one of them is installed, every adapter",
                         "except RunelessRPG's turns off with a warning. Known bridges (Ars 'n Spells, Ars Mana Bridge, Mana Transform,",
-                        "Unified Mana) are detected anyway, with a look at their own switches.")
+                        "Mana Unifier, Unified Mana) are detected anyway, with a look at their own switches.")
                 .translation(key("conflictingMods"))
                 .defineListAllowEmpty("conflictingMods", List.of(), () -> "", o -> o instanceof String);
         IGNORE_CONFLICTS = b.comment("Keep all adapters on even if another bridge is active (only if the pack solves it otherwise).")

@@ -195,8 +195,8 @@ public final class ArsAdapter implements ManaAdapter {
     /**
      * Known bridges on the Ars side (checked with their jars, plan 9.1). Ars 'n Spells: active while its mana unification
      * is on in a joining mode; in ARS_PRIMARY Ars is its one pool, so this adapter stays on in a chain
-     * ({@code chainWithArsNSpells}; in ISS_PRIMARY only the Iron's adapter runs). Ars Mana Bridge: always; Unified Mana:
-     * while its Ars integration is on.
+     * ({@code chainWithArsNSpells}; in ISS_PRIMARY only the Iron's adapter runs). Ars Mana Bridge and Mana Unifier (no
+     * switch): always; Unified Mana: while its Ars integration is on.
      */
     @Override
     public List<ConflictCheck> conflicts() {
@@ -204,6 +204,7 @@ public final class ArsAdapter implements ManaAdapter {
                 new ConflictCheck("ars_n_spells", ArsNSpells::unificationActive,
                         () -> BridgeConfig.get(BridgeConfig.CHAIN_WITH_ARS_N_SPELLS, true) && ArsNSpells.arsPrimary()),
                 ConflictCheck.always("arsmanabridge"),
+                ConflictCheck.always("manaunifier"),
                 new ConflictCheck("unifiedmana", () -> {
                     try {
                         return Reflect.bool(Reflect.staticValue("com.unifiedmana.config.UnifiedManaConfig", "ARS_NOUVEAU_ENABLED"));

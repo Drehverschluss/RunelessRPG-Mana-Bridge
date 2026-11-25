@@ -34,6 +34,7 @@ The bridge recognizes these mods so that two bridges never pull at the same pool
 - [Ars 'n Spells](https://www.curseforge.com/minecraft/mc-mods/ars-n-spells) by Otectus (`ars_n_spells`, GPL-3.0)
 - Ars Mana Bridge (`arsmanabridge`, MIT)
 - Mana Transform (`mana_transform`, MIT)
+- Mana Unifier (`manaunifier`, MIT according to its mod file)
 - Unified Mana (`unifiedmana`, All Rights Reserved)
 
 ## License

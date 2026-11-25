@@ -38,6 +38,7 @@ public final class Bridge {
         modBus.addListener(ModConfigEvent.Loading.class, event -> onConfig(event.getConfig()));
         modBus.addListener(ModConfigEvent.Reloading.class, event -> onConfig(event.getConfig()));
         NeoForge.EVENT_BUS.addListener(ServerStartingEvent.class, event -> {
+            MixinConflicts.warnUnknown(); // the server config (conflictingMods) is loaded now
             Conflicts.evaluate();
             Leader.update(event.getServer());
         });
