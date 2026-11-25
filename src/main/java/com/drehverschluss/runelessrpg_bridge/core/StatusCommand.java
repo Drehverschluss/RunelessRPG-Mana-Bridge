@@ -9,8 +9,10 @@ import com.electronwill.nightconfig.core.UnmodifiableConfig;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import net.minecraft.ChatFormatting;
@@ -100,7 +102,10 @@ public final class StatusCommand {
         return 1;
     }
 
-    /** All lines of the status, for this player or without player values (console without a name). */
+    /**
+     * All lines of the status, for this player or without player values (console without a name). Kept short so that the
+     * whole output fits into the chat (at most 20 lines) with all three mods, a chain with another bridge and a familiar.
+     */
     static List<Text> lines(@Nullable ServerPlayer player) {
         List<Text> lines = new ArrayList<>();
         lines.add(t("header", "===== RunelessRPG Mana Bridge status ====="));
@@ -132,7 +137,7 @@ public final class StatusCommand {
             lines.addAll(bridges);
         }
 
-        configLines(lines);
+        lines.add(configLine());
 
         if (player == null) {
             lines.add(t("no_player", "No player values: add a player name to see them."));
@@ -142,8 +147,9 @@ public final class StatusCommand {
         return lines;
     }
 
+    /** One line per adapter, without the version (it is in the versions line). */
     private static Text adapterLine(AdapterHandle handle, @Nullable ServerPlayer player) {
-        String name = handle.loaded() ? nameAndVersion(handle.modId()) : handle.adapter().displayName();
+        String name = handle.adapter().displayName();
         if (handle.isRuneless()) {
             return handle.isLeader()
                     ? t("adapter.runeless.leads", " - %s: leads the pool (its own mana storage)", name)
@@ -159,31 +165,49 @@ public final class StatusCommand {
         Text kind = handle.configFactor() > 0.0 ? t("factor.config", "set in the config") : t("factor.auto", "automatic");
         return handle.isLeader()
                 ? t("adapter.leads", " - %s: connected, leads the pool (factor %s, %s)", name, factor, kind)
-                : t("adapter.follows", " - %s: connected, follows the leading pool (factor %s, %s)", name, factor, kind);
+                : t("adapter.follows", " - %s: connected, follows (factor %s, %s)", name, factor, kind);
     }
 
+    /**
+     * One line per installed known bridge with its effect on every adapter it touches; mixins of other mods on the hooked
+     * classes only for mods that are not known bridges (those are listed anyway); entries of conflictingMods.
+     */
     private static List<Text> bridgeLines() {
         List<Text> lines = new ArrayList<>();
         boolean ignore = BridgeConfig.get(BridgeConfig.IGNORE_CONFLICTS, false);
+        Map<String, List<Text>> parts = new LinkedHashMap<>();
+        Map<String, Boolean> allInactive = new LinkedHashMap<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             String adapter = handle.adapter().displayName();
             for (ConflictCheck check : handle.adapter().conflicts()) {
                 if (!ModList.get().isLoaded(check.modId())) {
                     continue;
                 }
-                String bridge = nameAndVersion(check.modId()) + " (" + check.modId() + ")";
-                if (!Conflicts.isActive(check)) {
-                    lines.add(t("bridge.inactive", " - %s: installed, its mana function for %s is off", bridge, adapter));
+                List<Text> list = parts.computeIfAbsent(check.modId(), k -> new ArrayList<>());
+                boolean active = Conflicts.isActive(check);
+                allInactive.merge(check.modId(), !active, Boolean::logicalAnd);
+                if (!active) {
+                    list.add(t("bridge.part.inactive", "its mana function for %s is off", adapter));
                 } else if (Conflicts.isChained(check)) {
-                    lines.add(t("bridge.chained", " - %s: active, chained with the %s adapter, which stays on (each links other pools)", bridge, adapter));
+                    list.add(t("bridge.part.chained", "chained with the %s adapter, which stays on", adapter));
                 } else if (ignore) {
-                    lines.add(t("bridge.ignored", " - %s: active; the %s adapter stays on (ignoreConflicts = true)", bridge, adapter));
+                    list.add(t("bridge.part.ignored", "the %s adapter stays on (ignoreConflicts = true)", adapter));
                 } else {
-                    lines.add(t("bridge.active", " - %s: active; the %s adapter is off", bridge, adapter));
+                    list.add(t("bridge.part.off", "the %s adapter is off", adapter));
                 }
             }
+        }
+        for (Map.Entry<String, List<Text>> entry : parts.entrySet()) {
+            String bridge = nameAndVersion(entry.getKey()) + " (" + entry.getKey() + ")";
+            lines.add(allInactive.get(entry.getKey())
+                    ? t("bridge.inactive", " - %s: installed, its mana function is off", bridge)
+                    : t("bridge.active", " - %s: active; %s", bridge, join(entry.getValue())));
+        }
+        for (AdapterHandle handle : Adapters.foreign()) {
             for (String found : MixinConflicts.found(handle.modId())) {
-                lines.add(t("bridge.mixins", " - mixins on the classes of the %s adapter (warning only): %s", adapter, found));
+                if (parts.keySet().stream().noneMatch(id -> found.contains("(" + id + ")"))) {
+                    lines.add(t("bridge.mixins", " - mixins on the classes of the %s adapter (warning only): %s", handle.adapter().displayName(), found));
+                }
             }
         }
         for (String modId : Conflicts.extraMods()) {
@@ -194,31 +218,63 @@ public final class StatusCommand {
         return lines;
     }
 
+    /** Texts joined with "; " (nested, so every part stays translatable). */
+    private static Object join(List<Text> parts) {
+        if (parts.isEmpty()) {
+            return "";
+        }
+        Object joined = parts.get(parts.size() - 1);
+        for (int i = parts.size() - 2; i >= 0; i--) {
+            joined = t("join", "%s; %s", parts.get(i), joined);
+        }
+        return joined;
+    }
+
     private static void playerLines(ServerPlayer player, String leader, List<Text> lines) {
-        lines.add(t("player", "Player %s (%s):", player.getGameProfile().getName(), player.gameMode.getGameModeForPlayer().getName()));
         double mana = RunelessApi.getMana(player);
         double max = RunelessApi.getMaxMana(player);
         double debt = Math.max(0.0, -mana);
-        lines.add(t("player.mana", " - Mana: %s / %s RunelessRPG mana, debt %s", new Num(mana, false), new Num(max, false), new Num(debt, false)));
-        if (leader.equals(Adapters.RUNELESS)) {
-            lines.add(t("player.regen", " - Regeneration: %s RunelessRPG mana per second", new Num(RunelessApi.getManaRegen(player), false)));
-        }
+        Object regen = leader.equals(Adapters.RUNELESS)
+                ? t("player.regen", ", regeneration %s per second", new Num(RunelessApi.getManaRegen(player), false))
+                : "";
+        lines.add(t("player", "Player %s (%s): %s / %s RunelessRPG mana, debt %s%s", player.getGameProfile().getName(),
+                player.gameMode.getGameModeForPlayer().getName(), new Num(mana, false), new Num(max, false), new Num(debt, false), regen));
+        List<Text> units = new ArrayList<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             if (!handle.isConnectedOnServer()) {
                 continue;
             }
             double factor = Pool.factor(player, handle.modId());
-            lines.add(t("player.unit", " - In %s mana: %s / %s, debt %s", handle.adapter().displayName(), new Num(Math.max(0.0, mana) / factor, false),
+            units.add(t("player.unit", "%s %s / %s, debt %s", handle.adapter().displayName(), new Num(Math.max(0.0, mana) / factor, false),
                     new Num(max / factor, false), new Num(debt / factor, false)));
         }
-        BridgeBonus bonus = BonusBridge.current(player);
-        lines.add(t("player.bonus", " - Bridge bonus (in %s mana): max mana %s, %s %% of base, x%s on the total;"
-                + " regeneration %s per second, %s %%, x%s", name(leader), new Num(bonus.maxFlat(), true), new Num(bonus.maxBase() * 100.0, true),
-                new Num(bonus.maxTotal(), false), new Num(bonus.regenFlat(), true), new Num(bonus.regenBase() * 100.0, true),
-                new Num(bonus.regenTotal(), false)));
-        if (bonus.reserve() > 0.0) {
-            lines.add(t("player.reserve", " - Reserved (e.g. by Ars familiars): %s %% of the max mana", new Num(bonus.reserve() * 100.0, false)));
+        if (!units.isEmpty()) {
+            lines.add(t("player.units", " - In the units of the other mods: %s", join(units)));
         }
+        BridgeBonus bonus = BonusBridge.current(player);
+        List<Text> parts = new ArrayList<>();
+        if (bonus.maxFlat() != 0.0) {
+            parts.add(t("player.bonus.max_flat", "max mana %s", new Num(bonus.maxFlat(), true)));
+        }
+        if (bonus.maxBase() != 0.0) {
+            parts.add(t("player.bonus.max_base", "max mana %s %% of base", new Num(bonus.maxBase() * 100.0, true)));
+        }
+        if (bonus.maxTotal() != 1.0) {
+            parts.add(t("player.bonus.max_total", "max mana x%s on the total", new Num(bonus.maxTotal(), false)));
+        }
+        if (bonus.regenFlat() != 0.0) {
+            parts.add(t("player.bonus.regen_flat", "regeneration %s per second", new Num(bonus.regenFlat(), true)));
+        }
+        if (bonus.regenBase() != 0.0) {
+            parts.add(t("player.bonus.regen_base", "regeneration %s %%", new Num(bonus.regenBase() * 100.0, true)));
+        }
+        if (bonus.regenTotal() != 1.0) {
+            parts.add(t("player.bonus.regen_total", "regeneration x%s", new Num(bonus.regenTotal(), false)));
+        }
+        if (bonus.reserve() > 0.0) {
+            parts.add(t("player.bonus.reserve", "reserved (e.g. by Ars familiars) %s %% of the max mana", new Num(bonus.reserve() * 100.0, false)));
+        }
+        lines.add(t("player.bonus", " - Bridge bonus (in %s mana): %s", name(leader), parts.isEmpty() ? t("player.bonus.none", "none") : join(parts)));
         lines.add(BridgeNetwork.hasChannel(player)
                 ? t("player.client.yes", " - Client has the bridge: yes")
                 : t("player.client.no", " - Client has the bridge: no (pool and costs are right; the bar choice and the converted displays are missing)"));
@@ -232,9 +288,12 @@ public final class StatusCommand {
 
     private static String versions() {
         List<String> parts = new ArrayList<>();
-        for (String modId : List.of("minecraft", "neoforge", ManaBridge.MODID, "runelessrpg", "spell_engine", "irons_spellbooks", "irons_lib", "ars_nouveau")) {
+        // without Minecraft (this mod only runs on 1.21.1) and with a short own name, so the line takes two chat lines at most
+        for (String modId : List.of("neoforge", ManaBridge.MODID, "runelessrpg", "spell_engine", "irons_spellbooks", "irons_lib", "ars_nouveau")) {
             if (ModList.get().isLoaded(modId)) {
-                parts.add(nameAndVersion(modId));
+                parts.add(modId.equals(ManaBridge.MODID)
+                        ? "Mana Bridge " + ModList.get().getModContainerById(modId).map(c -> c.getModInfo().getVersion().toString()).orElse("?")
+                        : nameAndVersion(modId));
             }
         }
         return String.join(", ", parts);
@@ -253,45 +312,44 @@ public final class StatusCommand {
     }
 
     /**
-     * The server config in two lines: always manaSystem, foreignSpellsUseDebt, applyManaCost of every adapter and the
-     * bridge switches that are off; then every other option that differs from its default (file order). Options of
-     * {@code [general]} without the section name, the others as {@code section.key}.
+     * The server config in one line: always manaSystem and foreignSpellsUseDebt; applyManaCost and the bridge switches only
+     * where they are off; then every other option that differs from its default (file order). Options of {@code [general]}
+     * without the section name, the others as {@code section.key}.
      */
-    private static void configLines(List<Text> lines) {
-        if (BridgeConfig.SPEC == null) {
-            return;
-        }
+    private static Text configLine() {
         List<String> main = new ArrayList<>();
-        List<String> bridgesOff = new ArrayList<>();
+        List<String> switchesOff = new ArrayList<>();
         List<String> changed = new ArrayList<>();
-        for (UnmodifiableConfig.Entry entry : BridgeConfig.SPEC.getValues().entrySet()) {
-            if (!(entry.getValue() instanceof UnmodifiableConfig section)) {
-                continue;
-            }
-            for (UnmodifiableConfig.Entry value : section.entrySet()) {
-                if (!(value.getValue() instanceof ModConfigSpec.ConfigValue<?> configValue)) {
+        if (BridgeConfig.SPEC != null) {
+            for (UnmodifiableConfig.Entry entry : BridgeConfig.SPEC.getValues().entrySet()) {
+                if (!(entry.getValue() instanceof UnmodifiableConfig section)) {
                     continue;
                 }
-                String key = value.getKey();
-                String path = entry.getKey().equals("general") ? key : entry.getKey() + "." + key;
-                Object current = configValue(configValue);
-                String text = path + " = " + (current instanceof String s ? "\"" + s + "\"" : String.valueOf(current));
-                if (key.equals("manaSystem") || key.equals("foreignSpellsUseDebt") || key.equals("applyManaCost")) {
-                    main.add(text);
-                } else if (key.startsWith("bridge")) {
-                    if (!Boolean.TRUE.equals(current)) {
-                        bridgesOff.add(text);
+                for (UnmodifiableConfig.Entry value : section.entrySet()) {
+                    if (!(value.getValue() instanceof ModConfigSpec.ConfigValue<?> configValue)) {
+                        continue;
                     }
-                } else if (!Objects.equals(current, configValue.getDefault())) {
-                    changed.add(text);
+                    String key = value.getKey();
+                    String path = entry.getKey().equals("general") ? key : entry.getKey() + "." + key;
+                    Object current = configValue(configValue);
+                    String text = path + " = " + (current instanceof String s ? "\"" + s + "\"" : String.valueOf(current));
+                    if (key.equals("manaSystem") || key.equals("foreignSpellsUseDebt")) {
+                        main.add(text);
+                    } else if (key.startsWith("bridge") || key.equals("applyManaCost")) {
+                        if (!Boolean.TRUE.equals(current)) {
+                            switchesOff.add(text);
+                        }
+                    } else if (!Objects.equals(current, configValue.getDefault())) {
+                        changed.add(text);
+                    }
                 }
             }
         }
-        lines.add(t("config", "Config: %s; bridge switches: %s", String.join(", ", main),
-                bridgesOff.isEmpty() ? t("config.bridges_on", "all on") : String.join(", ", bridgesOff)));
-        lines.add(changed.isEmpty()
-                ? t("config.defaults", "Other options: all at their defaults")
-                : t("config.changed", "Other options changed from the defaults: %s", String.join(", ", changed)));
+        return t("config", "Config: %s; applyManaCost and bridge switches: %s; %s", String.join(", ", main),
+                switchesOff.isEmpty() ? t("config.switches_on", "all on") : String.join(", ", switchesOff),
+                changed.isEmpty()
+                        ? t("config.defaults", "other options at their defaults")
+                        : t("config.changed", "other options changed from the defaults: %s", String.join(", ", changed)));
     }
 
     private static @Nullable Object configValue(ModConfigSpec.ConfigValue<?> value) {

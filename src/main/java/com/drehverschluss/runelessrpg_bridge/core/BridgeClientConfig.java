@@ -26,8 +26,8 @@ public final class BridgeClientConfig {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
         b.push("display");
         MANA_DISPLAY = b.comment(
-                        "Which mana bar is shown: \"auto\" (bar of the leading mod), \"all\", or a mod ID such as \"runelessrpg\" or",
-                        "\"irons_spellbooks\". If that mod's adapter is off, RunelessRPG's bar is shown.")
+                        "Which mana bar is shown: \"auto\" (bar of the leading mod), \"all\", or a mod ID such as \"runelessrpg\",",
+                        "\"irons_spellbooks\" or \"ars_nouveau\". If that mod's adapter is off, the leading mod's bar is shown.")
                 .translation(BridgeConfig.key("manaDisplay"))
                 .define("manaDisplay", "auto");
         SHOW_RUNELESS_BAR_ON_DEBT = b.comment("Also show RunelessRPG's bar while you are in mana debt (other bars cannot show debt).")

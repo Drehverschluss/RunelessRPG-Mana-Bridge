@@ -20,7 +20,7 @@ displayName="${mod_name}"
 displayURL="https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge"
 authors="${mod_authors}"
 description='''${mod_description}'''
-credits="Compatibility mod for RunelessRPG, Spell Engine and Iron's Spells 'n Spellbooks; not made by or affiliated with the authors of Spell Engine or Iron's Spells 'n Spellbooks. No files of other mods are bundled. See CREDITS.md in the source repository."
+credits="Compatibility mod for RunelessRPG, Spell Engine, Iron's Spells 'n Spellbooks and Ars Nouveau; not made by or affiliated with the authors of Spell Engine, Iron's Spells 'n Spellbooks or Ars Nouveau. No files of other mods are bundled. See CREDITS.md in the source repository."
 logoFile="runelessrpg_bridge_logo.png"
 
 [[dependencies.${mod_id}]]
