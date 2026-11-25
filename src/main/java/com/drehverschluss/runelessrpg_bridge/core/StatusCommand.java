@@ -39,7 +39,7 @@ public final class StatusCommand {
     static final String ISSUES = "https://github.com/Drehverschluss/RunelessRPG-Mana-Bridge/issues/new/choose";
     private static final String PREFIX = ManaBridge.MODID + ".status.";
     /** Mana mods the bridge knows by name but has no adapter for in this version. */
-    private static final List<String> MANA_MODS_WITHOUT_ADAPTER = List.of("ars_nouveau");
+    private static final List<String> MANA_MODS_WITHOUT_ADAPTER = List.of();
 
     private StatusCommand() {}
 
@@ -174,6 +174,8 @@ public final class StatusCommand {
                 String bridge = nameAndVersion(check.modId()) + " (" + check.modId() + ")";
                 if (!Conflicts.isActive(check)) {
                     lines.add(t("bridge.inactive", " - %s: installed, its mana function for %s is off", bridge, adapter));
+                } else if (Conflicts.isChained(check)) {
+                    lines.add(t("bridge.chained", " - %s: active, chained with the %s adapter, which stays on (each links other pools)", bridge, adapter));
                 } else if (ignore) {
                     lines.add(t("bridge.ignored", " - %s: active; the %s adapter stays on (ignoreConflicts = true)", bridge, adapter));
                 } else {
@@ -214,6 +216,9 @@ public final class StatusCommand {
                 + " regeneration %s per second, %s %%, x%s", name(leader), new Num(bonus.maxFlat(), true), new Num(bonus.maxBase() * 100.0, true),
                 new Num(bonus.maxTotal(), false), new Num(bonus.regenFlat(), true), new Num(bonus.regenBase() * 100.0, true),
                 new Num(bonus.regenTotal(), false)));
+        if (bonus.reserve() > 0.0) {
+            lines.add(t("player.reserve", " - Reserved (e.g. by Ars familiars): %s %% of the max mana", new Num(bonus.reserve() * 100.0, false)));
+        }
         lines.add(BridgeNetwork.hasChannel(player)
                 ? t("player.client.yes", " - Client has the bridge: yes")
                 : t("player.client.no", " - Client has the bridge: no (pool and costs are right; the bar choice and the converted displays are missing)"));

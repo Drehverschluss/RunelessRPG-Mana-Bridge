@@ -48,7 +48,8 @@ public final class BonusBridge {
                     continue;
                 }
                 BridgeBonus own = handle.adapter().readBonus(player)
-                        .filter(handle.bridgeMaxMana(), handle.bridgeManaRegen(), handle.bridgePercentBonuses());
+                        .filter(handle.bridgeMaxMana(), handle.bridgeManaRegen(), handle.bridgePercentBonuses())
+                        .plus(handle.adapter().readExtraBonus(player));
                 sum = sum.plus(own.scaleFlat(Pool.factor(player, handle.modId()) / leaderFactor));
             }
             CURRENT.put(player.getUUID(), sum);

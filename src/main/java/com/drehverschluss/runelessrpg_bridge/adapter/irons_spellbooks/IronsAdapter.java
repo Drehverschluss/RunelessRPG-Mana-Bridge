@@ -6,11 +6,11 @@ import com.drehverschluss.runelessrpg_bridge.api.AdapterStatus;
 import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
 import com.drehverschluss.runelessrpg_bridge.api.ConflictCheck;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
+import com.drehverschluss.runelessrpg_bridge.core.ArsNSpells;
 import com.drehverschluss.runelessrpg_bridge.core.Attributes;
 import com.drehverschluss.runelessrpg_bridge.core.BridgeConfig;
 import com.drehverschluss.runelessrpg_bridge.core.Reflect;
 import java.util.List;
-import java.util.Locale;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
@@ -149,17 +149,10 @@ public final class IronsAdapter implements ManaAdapter {
     @Override
     public List<ConflictCheck> conflicts() {
         return List.of(
-                // Ars 'n Spells: only while its mana unification is on (ISS_PRIMARY, ARS_PRIMARY, HYBRID)
-                new ConflictCheck("ars_n_spells", () -> {
-                    try {
-                        boolean on = Reflect.bool(Reflect.staticValue("com.otectus.arsnspells.config.AnsConfig", "ENABLE_MANA_UNIFICATION"));
-                        String mode = String.valueOf(Reflect.staticValue("com.otectus.arsnspells.config.AnsConfig", "MANA_UNIFICATION_MODE"))
-                                .toLowerCase(Locale.ROOT);
-                        return on && !mode.equals("separate") && !mode.equals("disabled");
-                    } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
-                        return true;
-                    }
-                }),
+                // Ars 'n Spells: only while its mana unification is on (ISS_PRIMARY, ARS_PRIMARY, HYBRID); in ISS_PRIMARY
+                // Iron's is its one pool, so this adapter stays on in a chain (chainWithArsNSpells, plan 9.1)
+                new ConflictCheck("ars_n_spells", ArsNSpells::unificationActive,
+                        () -> BridgeConfig.get(BridgeConfig.CHAIN_WITH_ARS_N_SPELLS, true) && ArsNSpells.issPrimary()),
                 // Ars Mana Bridge: no switch, always active
                 ConflictCheck.always("arsmanabridge"),
                 // Mana Transform (Iron's <-> Dragon Survival): while ENABLED

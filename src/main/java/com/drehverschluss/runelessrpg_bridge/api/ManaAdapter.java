@@ -12,7 +12,7 @@ import org.jetbrains.annotations.Nullable;
 
 /**
  * Connection of one mana mod to the shared mana pool. Every mana mod (RunelessRPG itself, Iron's Spells 'n Spellbooks,
- * later Ars Nouveau) is one adapter. The core of RunelessRPG Mana Bridge only talks to adapters through this interface
+ * Ars Nouveau) is one adapter. The core of RunelessRPG Mana Bridge only talks to adapters through this interface
  * and never touches a class of another mod.
  * <p>
  * An adapter has two parts. <b>This interface is the description</b> (mod id, config section, other bridges, bar):
@@ -49,6 +49,14 @@ public interface ManaAdapter {
      * switches first.
      */
     default void defineConfig(ModConfigSpec.Builder builder) {}
+
+    /**
+     * Adds the adapter's own client options to the section {@code [display]} of the client config; called for every
+     * known adapter, also while its mod is missing. Option names must not clash with the core's or other adapters'.
+     *
+     * @since 0.1.0 (phase C3)
+     */
+    default void defineClientConfig(ModConfigSpec.Builder builder) {}
 
     /**
      * Only while the mod is loaded: called once on the mod bus during mod construction, after the config is defined.
@@ -110,6 +118,19 @@ public interface ManaAdapter {
      * nothing counts twice. Called every server tick while the adapter is connected and does not lead.
      */
     default BridgeBonus readBonus(Player player) {
+        return BridgeBonus.NONE;
+    }
+
+    /**
+     * Only while the mod is loaded: bonuses that the adapter switches with options of its own, so the core does not
+     * filter them with {@code bridgeMaxMana}, {@code bridgeManaRegen} and {@code bridgePercentBonuses}; added to
+     * {@link #readBonus}. Same units and rules as there. Example: Ars Nouveau's progress (glyphs, book tier, switch
+     * {@code bridgeProgression}) and the mana its familiars reserve ({@code applyFamiliarReserve}, as
+     * {@link BridgeBonus#reserve()}). Called every server tick while the adapter is connected and does not lead.
+     *
+     * @since 0.1.0 (phase C3)
+     */
+    default BridgeBonus readExtraBonus(Player player) {
         return BridgeBonus.NONE;
     }
 

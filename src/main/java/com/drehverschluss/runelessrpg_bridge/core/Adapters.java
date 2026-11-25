@@ -22,7 +22,8 @@ public final class Adapters {
 
     private static final List<Entry> KNOWN = List.of(
             new Entry(RUNELESS, "com.drehverschluss.runelessrpg_bridge.adapter.runelessrpg.RunelessAdapter"),
-            new Entry("irons_spellbooks", "com.drehverschluss.runelessrpg_bridge.adapter.irons_spellbooks.IronsAdapter"));
+            new Entry("irons_spellbooks", "com.drehverschluss.runelessrpg_bridge.adapter.irons_spellbooks.IronsAdapter"),
+            new Entry("ars_nouveau", "com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau.ArsAdapter"));
 
     private static List<AdapterHandle> handles = List.of();
 

@@ -59,13 +59,18 @@ public final class Attributes {
      *         or {0, 0, 1} if the player lacks the attribute
      */
     public static double[] modifiersByOperation(Player player, String id, String excludedNamespace) {
+        return modifiersByOperation(player, id, excludedNamespace, null);
+    }
+
+    /** Same as {@link #modifiersByOperation(Player, String, String)}, also without the modifier {@code excludedId} (may be null). */
+    public static double[] modifiersByOperation(Player player, String id, String excludedNamespace, @Nullable ResourceLocation excludedId) {
         AttributeInstance instance = instance(player, id);
         double add = 0.0;
         double base = 0.0;
         double total = 1.0;
         if (instance != null) {
             for (AttributeModifier modifier : instance.getModifiers()) {
-                if (modifier.id().getNamespace().equals(excludedNamespace)) {
+                if (modifier.id().getNamespace().equals(excludedNamespace) || modifier.id().equals(excludedId)) {
                     continue;
                 }
                 switch (modifier.operation()) {
@@ -93,6 +98,9 @@ public final class Attributes {
         }
         setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_base"), bonus.regenBase(), AttributeModifier.Operation.ADD_MULTIPLIED_BASE);
         setBridgeModifier(player, manaRegenId, bridgeId("bridge_regen_total"), bonus.regenTotal() - 1.0, AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
+        // reserved share (e.g. Ars familiars) as its own total modifier, so it shows on the leading bar and in tooltips
+        setBridgeModifier(player, maxManaId, bridgeId("bridge_max_reserve"), -Math.max(0.0, Math.min(1.0, bonus.reserve())),
+                AttributeModifier.Operation.ADD_MULTIPLIED_TOTAL);
     }
 
     /**

@@ -46,6 +46,9 @@ public final class BridgeClientConfig {
                         "(e.g. a Spell Engine spell weapon).")
                 .translation(BridgeConfig.key("showForeignBarWithSpellWeapons"))
                 .define("showForeignBarWithSpellWeapons", true);
+        for (AdapterHandle handle : Adapters.known()) {
+            handle.adapter().defineClientConfig(b);
+        }
         b.pop();
         return b.build();
     }

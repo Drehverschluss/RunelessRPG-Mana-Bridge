@@ -27,9 +27,19 @@ public final class Conflicts {
         List<String> extra = extraMods();
         for (AdapterHandle handle : Adapters.foreign()) {
             List<String> found = new ArrayList<>();
+            List<String> chain = new ArrayList<>();
             for (ConflictCheck check : handle.adapter().conflicts()) {
                 if (ModList.get().isLoaded(check.modId()) && isActive(check)) {
-                    found.add(name(check.modId()));
+                    (isChained(check) ? chain : found).add(name(check.modId()));
+                }
+            }
+            String chainText = String.join(", ", chain);
+            if (!chainText.equals(handle.chained())) {
+                handle.setChained(chainText);
+                changed = true;
+                if (!chainText.isEmpty()) {
+                    ManaBridge.LOGGER.info("Adapter {} stays on in a chain with {}: that bridge keeps its own link, this adapter links the "
+                            + "same mod to the leading pool", handle.modId(), chainText);
                 }
             }
             for (String modId : extra) {
@@ -55,6 +65,15 @@ public final class Conflicts {
             }
         }
         return changed;
+    }
+
+    /** Only for active bridges: works in a chain with the adapter (an exception counts as "not chained", the safe side). */
+    static boolean isChained(ConflictCheck check) {
+        try {
+            return check.chained().getAsBoolean();
+        } catch (RuntimeException | LinkageError e) {
+            return false;
+        }
     }
 
     static boolean isActive(ConflictCheck check) {

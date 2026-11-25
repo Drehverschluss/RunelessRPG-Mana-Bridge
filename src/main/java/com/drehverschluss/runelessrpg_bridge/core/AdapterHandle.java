@@ -23,6 +23,7 @@ public final class AdapterHandle implements AdapterStatus {
     // server state
     private volatile String selfTestProblem = "";
     private volatile String conflict = "";
+    private volatile String chained = "";
 
     AdapterHandle(ManaAdapter adapter, boolean loaded) {
         this.adapter = adapter;
@@ -61,6 +62,15 @@ public final class AdapterHandle implements AdapterStatus {
 
     void setConflict(String conflict) {
         this.conflict = conflict == null ? "" : conflict;
+    }
+
+    /** @return other bridges that are active but chained with this adapter (empty if none), server side */
+    public String chained() {
+        return chained;
+    }
+
+    void setChained(String chained) {
+        this.chained = chained == null ? "" : chained;
     }
 
     public boolean configEnabled() {

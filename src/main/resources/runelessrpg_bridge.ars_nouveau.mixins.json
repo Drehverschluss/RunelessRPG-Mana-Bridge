@@ -1,0 +1,23 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau.mixin",
+  "plugin": "com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau.mixin.ArsMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "LivingCasterMixin",
+    "ManaCapEventsMixin",
+    "ManaCapMixin",
+    "ManaUtilMixin",
+    "SpellResolverMixin"
+  ],
+  "client": [
+    "client.ArsAttributeDisplayMixin",
+    "client.DiscountRingMixin",
+    "client.GuiManaHUDMixin",
+    "client.GuiSpellBookMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}

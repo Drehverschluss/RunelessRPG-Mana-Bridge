@@ -16,6 +16,7 @@ public final class BridgeConfig {
     public static ModConfigSpec.ConfigValue<List<? extends String>> CONFLICTING_MODS;
     public static ModConfigSpec.BooleanValue IGNORE_CONFLICTS;
     public static ModConfigSpec.BooleanValue NOTIFY_CONFLICTS_IN_CHAT;
+    public static ModConfigSpec.BooleanValue CHAIN_WITH_ARS_N_SPELLS;
     /** The whole server config, read section by section by the status command. */
     static ModConfigSpec SPEC;
 
@@ -51,6 +52,12 @@ public final class BridgeConfig {
         NOTIFY_CONFLICTS_IN_CHAT = b.comment("Tell operators in chat on login which adapter is off because of another bridge.")
                 .translation(key("notifyConflictsInChat"))
                 .define("notifyConflictsInChat", true);
+        CHAIN_WITH_ARS_N_SPELLS = b.comment(
+                        "With Ars 'n Spells in its mana unification mode \"iss_primary\" (Iron's is its one pool and Ars Nouveau reads it),",
+                        "only the Iron's adapter runs (Iron's <-> leading pool) and Ars 'n Spells keeps Ars <-> Iron's; the Ars adapter is off.",
+                        "Off: any active mana unification of Ars 'n Spells turns both adapters off. Other modes (ars_primary, hybrid) always do.")
+                .translation(key("chainWithArsNSpells"))
+                .define("chainWithArsNSpells", true);
         b.pop();
 
         for (AdapterHandle handle : Adapters.known()) {
@@ -88,13 +95,15 @@ public final class BridgeConfig {
                     .translation(key("applyManaCost"))
                     .define("applyManaCost", true);
             handle.bridgeMaxMana = b.comment(
-                            "Max mana bonuses of this mod (modifiers on its max mana above the base value: gear, rings, upgrades, effects)",
-                            "count for the leading pool while this mod does not lead; flat values converted with manaFactor (+50 -> +10).")
+                            "Max mana bonuses of this mod's gear (modifiers on its max mana above the base value: armor, enchantments,",
+                            "rings and other curios, upgrades, effects) count for the leading pool while this mod does not lead; flat",
+                            "values converted with manaFactor (+50 -> +10).")
                     .translation(key("bridgeMaxMana"))
                     .define("bridgeMaxMana", true);
             handle.bridgeManaRegen = b.comment(
-                            "Mana regeneration bonuses of this mod count for the leading pool while this mod does not lead",
-                            "(Iron's mana_regen above 1.0 multiplies it: +15 % -> regeneration x 1.15).")
+                            "Mana regeneration bonuses of this mod's gear count for the leading pool while this mod does not lead",
+                            "(Iron's mana_regen above 1.0 multiplies it: +15 % -> regeneration x 1.15; flat regeneration such as",
+                            "Ars Nouveau's is converted with manaFactor: +4/s -> +0.8/s).")
                     .translation(key("bridgeManaRegen"))
                     .define("bridgeManaRegen", true);
             handle.bridgePercentBonuses = b.comment(
