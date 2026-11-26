@@ -27,6 +27,50 @@ public final class ArsClientHooks {
 
     public static void register() {
         NeoForge.EVENT_BUS.addListener(ManaInsufficientEvent.class, ArsClientHooks::onInsufficient);
+        NeoForge.EVENT_BUS.addListener(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent.class, ArsClientHooks::onTooltip);
+    }
+
+    /** Glyphs that deal damage without being an {@code IDamageEffect} (through an entity or an explosion of their own). */
+    private static final java.util.Set<String> OTHER_DAMAGE_GLYPHS = java.util.Set.of("ars_nouveau:glyph_lightning",
+            "ars_nouveau:glyph_wind_burst", "ars_nouveau:glyph_summon_vex", "ars_nouveau:glyph_summon_wolves",
+            "ars_nouveau:glyph_summon_undead");
+
+    /**
+     * Tooltip of an Ars casting item (spell book, caster tome, wand, bow ...): the overcharge line for its selected spell,
+     * like below the cost of a Spell Engine spell (Ars shows no cost numbers there, plan 4.10). Damage: any damaging glyph;
+     * healing: Heal.
+     */
+    private static void onTooltip(net.neoforged.neoforge.event.entity.player.ItemTooltipEvent event) {
+        try {
+            LocalPlayer player = connectedPlayer();
+            if (player == null || event.getEntity() != player || !ArsHooks.isCastingItem(event.getItemStack())) {
+                return;
+            }
+            com.hollingsworth.arsnouveau.api.spell.AbstractCaster<?> caster =
+                    com.hollingsworth.arsnouveau.api.registry.SpellCasterRegistry.from(event.getItemStack());
+            if (caster == null || caster.getSpell() == null || caster.getSpell().isEmpty()) {
+                return;
+            }
+            boolean damage = false;
+            boolean healing = false;
+            for (com.hollingsworth.arsnouveau.api.spell.AbstractSpellPart part : caster.getSpell().unsafeList()) {
+                if (part instanceof com.hollingsworth.arsnouveau.common.spell.effect.EffectHeal) {
+                    healing = true;
+                } else if (part instanceof com.hollingsworth.arsnouveau.api.spell.IDamageEffect
+                        || OTHER_DAMAGE_GLYPHS.contains(part.getRegistryName().toString())) {
+                    damage = true;
+                }
+            }
+            MutableComponent line = DisplayManager.overchargeLine(player, ID, damage, healing);
+            if (line != null) {
+                event.getToolTip().add(line);
+            }
+        } catch (RuntimeException | LinkageError e) {
+            if (!errorLogged) {
+                errorLogged = true;
+                ManaBridge.LOGGER.error("Ars Nouveau adapter: overcharge line in the tooltip failed", e);
+            }
+        }
     }
 
     private static @Nullable LocalPlayer connectedPlayer() {

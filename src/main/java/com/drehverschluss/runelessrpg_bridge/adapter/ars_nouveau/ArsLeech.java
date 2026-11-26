@@ -92,6 +92,28 @@ public final class ArsLeech implements SpellHitPredicate {
     }
 
     /**
+     * @return the first glyph of {@code leechZoneGlyphs} (Linger, Wall, Orbit by default) before the current part, in
+     *         this context or in the contexts before it (Linger, Wall and Orbit go on in a child context), or null. Spell
+     *         Mana Leech and overcharge (snapshot of a zone) use the same rule.
+     */
+    static @Nullable String zoneGlyph(@Nullable SpellContext context) {
+        Set<String> zones = ArsAdapter.zoneGlyphs();
+        SpellContext current = context;
+        for (int depth = 0; current != null && depth < MAX_CONTEXT_DEPTH; depth++) {
+            List<AbstractSpellPart> parts = current.getSpell().unsafeList();
+            int upTo = Math.min(current.getCurrentIndex(), parts.size());
+            for (int i = 0; i < upTo; i++) {
+                String id = parts.get(i).getRegistryName().toString().toLowerCase(Locale.ROOT);
+                if (zones.contains(id)) {
+                    return id;
+                }
+            }
+            current = current.getPreviousContext();
+        }
+        return null;
+    }
+
+    /**
      * Where the hit comes from: "direct: glyphs" or "not direct: reason". Direct means the player's own cast and no zone
      * glyph before the damage.
      */

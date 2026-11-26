@@ -149,10 +149,29 @@ public final class ArsHooks {
             if (cost > 0) {
                 Pool.pay(player, ID, cost);
             }
+            try {
+                ArsOvercharge.onPaid(player, cost);
+            } catch (RuntimeException e) {
+                ManaBridge.LOGGER.debug("Ars overcharge: marking a paid cast failed", e);
+            }
             return true;
         } catch (RuntimeException e) {
             ManaBridge.LOGGER.error("Ars cast payment failed, Ars pays itself for this cast", e);
             return false;
+        }
+    }
+
+    /** {@code SpellResolver.expendMana} starts (overcharge: this context is the one being paid). */
+    public static void expendStarts(@Nullable com.hollingsworth.arsnouveau.api.spell.SpellContext context) {
+        ArsOvercharge.expendStarts(context);
+    }
+
+    /** {@code RuneTile.setSpell} (overcharge: snapshot of a rune a paid spell places). */
+    public static void runeSpell(net.minecraft.world.level.block.entity.BlockEntity tile) {
+        try {
+            ArsOvercharge.onRuneSpell(tile);
+        } catch (RuntimeException e) {
+            ManaBridge.LOGGER.debug("Ars overcharge: rune snapshot failed", e);
         }
     }
 

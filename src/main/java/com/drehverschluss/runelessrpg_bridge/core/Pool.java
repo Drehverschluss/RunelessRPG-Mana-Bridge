@@ -162,9 +162,34 @@ public final class Pool {
 
     // ------------------------------------------------------------------ costs
 
-    /** @return the multiplier from {@code runelessrpg:mana_cost} if the adapter applies it, else 1 */
+    /**
+     * The cost multiplier of RunelessRPG for spells of this mod (plan 4.2, 4.10): {@code max(lower limit, mana_cost)}
+     * with {@code applyManaCost}, then {@code × (1 + overcharge)} with {@code applyOvercharge} (overcharge after the
+     * lower limit, as for Spell Engine spells). Both off: 1.
+     */
     public static double costMultiplier(Player player, String modId) {
-        return applyManaCost(player, modId) ? RunelessApi.getCostMultiplier(player) : 1.0;
+        boolean manaCost = applyManaCost(player, modId);
+        boolean overcharge = applyOvercharge(player, modId);
+        if (manaCost && overcharge) {
+            return RunelessApi.getCostMultiplierWithOvercharge(player);
+        }
+        if (manaCost) {
+            return RunelessApi.getCostMultiplier(player);
+        }
+        return overcharge ? RunelessApi.getOverchargeCostFactor(player) : 1.0;
+    }
+
+    /**
+     * @return true if {@code runelessrpg:overcharge} applies to this mod's spells ({@code applyOvercharge}; on the client
+     *         the server's value, false without it)
+     * @since 0.2.0 (phase C5B)
+     */
+    public static boolean applyOvercharge(Player player, String modId) {
+        if (isClient(player)) {
+            return ClientBridgeState.applyOvercharge(modId);
+        }
+        AdapterHandle handle = Adapters.getOrNull(modId);
+        return handle != null && handle.configApplyOvercharge();
     }
 
     private static boolean applyManaCost(Player player, String modId) {
@@ -176,7 +201,7 @@ public final class Pool {
         return handle == null || handle.configApplyManaCost();
     }
 
-    /** Effective cost in own units: own cost × max(lower limit, mana_cost). */
+    /** Effective cost in own units: own cost × max(lower limit, mana_cost) × (1 + overcharge), see {@link #costMultiplier}. */
     public static double effectiveCost(Player player, String modId, double ownCost) {
         return ownCost * costMultiplier(player, modId);
     }

@@ -9,6 +9,7 @@ import io.redspace.ironsspellbooks.config.ClientConfigs;
 import io.redspace.ironsspellbooks.gui.overlays.ManaBarOverlay;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.player.LocalPlayer;
+import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
 import org.jetbrains.annotations.Nullable;
@@ -68,6 +69,52 @@ public final class IronsClientHooks {
             return DisplayManager.numberText("tooltip.irons_spellbooks.mana_cost_per_second", displayCost(player, manaCost * 2.0));
         }
         return DisplayManager.numberText("tooltip.irons_spellbooks.mana_cost", displayCost(player, manaCost));
+    }
+
+    /** Keys of Iron's spell info lines that mean the spell deals damage (directly, by a zone or by summons). */
+    private static final java.util.Set<String> DAMAGE_KEYS = java.util.Set.of("ui.irons_spellbooks.damage", "ui.irons_spellbooks.aoe_damage",
+            "ui.irons_spellbooks.base_damage", "ui.irons_spellbooks.impact_damage", "ui.irons_spellbooks.percent_damage",
+            "ui.irons_spellbooks.shatter_damage");
+    /** Keys of Iron's spell info lines that mean the spell heals. */
+    private static final java.util.Set<String> HEALING_KEYS = java.util.Set.of("ui.irons_spellbooks.healing", "ui.irons_spellbooks.aoe_healing",
+            "ui.irons_spellbooks.greater_healing");
+
+    /**
+     * {@code TooltipsUtils.formatActiveSpellTooltip} (spell books, staves, swords): the overcharge line right below the cost
+     * line, only if the cast pays mana and the bonus is above 0. Damage or healing comes from Iron's own info lines of the
+     * spell ("%d Damage", "%d Healing" ...); a spell with neither (buffs, utility) gets no line, like in RunelessRPG.
+     */
+    public static void addOverchargeLine(java.util.List<MutableComponent> lines, io.redspace.ironsspellbooks.api.spells.SpellData spellData,
+            io.redspace.ironsspellbooks.api.spells.CastSource castSource, LocalPlayer player) {
+        if (lines == null || spellData == null || !castSource.consumesMana() || !IronsHooks.connected(player)) {
+            return;
+        }
+        io.redspace.ironsspellbooks.api.spells.AbstractSpell spell = spellData.getSpell();
+        int level = spell.getLevelFor(spellData.getLevel(), player);
+        if (spell.getManaCost(level) <= 0) {
+            return;
+        }
+        boolean damage = false;
+        boolean healing = false;
+        for (MutableComponent info : spell.getUniqueInfo(level, player)) {
+            if (info.getContents() instanceof net.minecraft.network.chat.contents.TranslatableContents contents) {
+                damage |= DAMAGE_KEYS.contains(contents.getKey());
+                healing |= HEALING_KEYS.contains(contents.getKey());
+            }
+        }
+        MutableComponent line = DisplayManager.overchargeLine(player, ID, damage, healing);
+        if (line == null) {
+            return;
+        }
+        String cost = io.redspace.ironsspellbooks.util.TooltipsUtils.getManaCostComponent(spell.getCastType(), spell.getManaCost(level)).getString();
+        for (int i = lines.size() - 1; i >= 0; i--) {
+            if (lines.get(i).getString().equals(cost)) {
+                // indented like Iron's own cost line (" 2.4 Mana Cost")
+                int indent = cost.length() - cost.stripLeading().length();
+                lines.add(i + 1, Component.literal(" ".repeat(indent)).append(line));
+                return;
+            }
+        }
     }
 
     /** Spell wheel: "%d Mana" in the display unit, or null to keep Iron's text. */

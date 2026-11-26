@@ -109,6 +109,14 @@ public final class BridgeConfig {
             handle.applyManaCost = b.comment("runelessrpg:mana_cost (with its lower limit and Spell Infinity) applies to this mod's spells.")
                     .translation(key("applyManaCost"))
                     .define("applyManaCost", true);
+            handle.applyOvercharge = b.comment(
+                            "runelessrpg:overcharge applies to this mod's spells with the same rules as for Spell Engine spells: they cost",
+                            "more (after the lower limit of mana_cost) and their damage and healing go up by RunelessRPG's",
+                            "overchargeDamageFactor (healing only with overchargeAffectsHealing). Summons, zones and runes keep the bonus",
+                            "they were made with (overchargeAffectsSummons). Only spells the player pays through this bridge get the bonus",
+                            "(no scrolls, turrets or spells another bridge pays for); damage over time and effects stay as they are.")
+                    .translation(key("applyOvercharge"))
+                    .define("applyOvercharge", true);
             handle.bridgeMaxMana = b.comment(
                             "Max mana bonuses of this mod's gear (modifiers on its max mana above the base value: armor, enchantments,",
                             "rings and other curios, upgrades, effects) count for the leading pool while this mod does not lead; flat",

@@ -27,6 +27,7 @@ import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.fml.config.ModConfig;
 import net.neoforged.neoforge.client.gui.ConfigurationScreen;
+import net.neoforged.neoforge.common.ModConfigSpec;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -105,6 +106,40 @@ public final class BridgeConfigScreen extends ConfigurationScreen.ConfigurationS
                     }, source.get());
                 });
         return new Element(getTranslationComponent(key), getTooltipComponent(key, null), option);
+    }
+
+    /**
+     * {@code displayUnit} (client config, {@code [display]}): NeoForge's enum button with readable names, and a tooltip for
+     * the selected value (its name, what it does and its name in the file). Other enums stay NeoForge's own.
+     */
+    @Override
+    protected <T extends Enum<T>> @Nullable Element createEnumValue(String key, ModConfigSpec.ValueSpec spec, Supplier<T> source, Consumer<T> target) {
+        if (!context.modId().equals(ManaBridge.MODID) || context.modConfig().getType() != ModConfig.Type.CLIENT || context.keylist().size() != 1
+                || !context.keylist().get(0).equals("display") || !key.equals("displayUnit")) {
+            return super.createEnumValue(key, spec, source, target);
+        }
+        @SuppressWarnings("unchecked")
+        Class<T> type = (Class<T>) spec.getClazz();
+        List<T> list = java.util.Arrays.stream(type.getEnumConstants()).filter(spec::test).toList();
+        OptionInstance<T> option = new OptionInstance<>(getTranslationKey(key), value -> Tooltip.create(unitTooltip(value)),
+                (caption, value) -> value instanceof net.neoforged.neoforge.common.TranslatableEnum named ? named.getTranslatedName()
+                        : Component.literal(value.name()),
+                new Custom<>(list), source.get(), newValue -> undoManager.add(v -> {
+                    target.accept(v);
+                    onChanged(key);
+                }, newValue, v -> {
+                    target.accept(v);
+                    onChanged(key);
+                }, source.get()));
+        return new Element(getTranslationComponent(key), getTooltipComponent(key, null), option);
+    }
+
+    private static Component unitTooltip(Enum<?> value) {
+        String name = value.name().toLowerCase(Locale.ROOT);
+        Component title = value instanceof net.neoforged.neoforge.common.TranslatableEnum named ? named.getTranslatedName() : Component.literal(value.name());
+        return Component.empty().append(title.copy().withStyle(ChatFormatting.BOLD)).append("\n")
+                .append(Component.translatable(ManaBridge.MODID + ".configuration.displayUnit." + name + ".tooltip")).append("\n")
+                .append(Component.translatable(ManaBridge.MODID + ".configuration.displayUnit.file", value.name()).withStyle(ChatFormatting.GRAY));
     }
 
     private @Nullable Kind kind(String key) {

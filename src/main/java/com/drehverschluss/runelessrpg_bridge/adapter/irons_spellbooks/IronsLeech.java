@@ -54,6 +54,15 @@ public final class IronsLeech implements SpellHitPredicate {
         if (direct == player) {
             return true; // instant and channeled spells (Ray of Frost, Eldritch Blast ... use indirect(), but hit directly)
         }
+        return isDirectType(direct);
+    }
+
+    /**
+     * @return true if hits of this entity count as direct: a spell projectile or cone (no zone), or an entity in
+     *         {@code spell_leech/direct}, never one in {@code spell_leech/excluded}. Overcharge uses the same rule for the
+     *         kind of a snapshot (direct: always, else like a zone or summon).
+     */
+    static boolean isDirectType(Entity direct) {
         EntityType<?> type = direct.getType();
         if (type.is(EXCLUDED)) {
             return false;

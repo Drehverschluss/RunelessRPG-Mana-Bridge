@@ -138,7 +138,8 @@ public final class ArsAdapter implements ManaAdapter {
                 .translation(BridgeConfig.key("spellManaLeech"))
                 .define("spellManaLeech", true);
         LEECH_ZONE_GLYPHS = b.comment(
-                        "Glyphs after which damage counts as a lasting zone or orbit, so Spell Mana Leech does not apply (glyph IDs).")
+                        "Glyphs after which damage counts as a lasting zone or orbit (glyph IDs): Spell Mana Leech does not apply, and",
+                        "with applyOvercharge the zone keeps the bonus it was made with (overchargeAffectsSummons).")
                 .translation(BridgeConfig.key("leechZoneGlyphs"))
                 .defineListAllowEmpty("leechZoneGlyphs", DEFAULT_ZONE_GLYPHS, () -> "ars_nouveau:glyph_", o -> o instanceof String);
     }
@@ -157,6 +158,7 @@ public final class ArsAdapter implements ManaAdapter {
         ArsAdapter.status = status;
         NeoForge.EVENT_BUS.register(ArsEvents.class);
         modBus.addListener(FMLCommonSetupEvent.class, event -> ArsLeech.register());
+        ArsOvercharge.register();
     }
 
     @Override
@@ -181,7 +183,14 @@ public final class ArsAdapter implements ManaAdapter {
                 "com.hollingsworth.arsnouveau.api.event.MaxManaCalcEvent",
                 "com.hollingsworth.arsnouveau.api.event.ManaRegenCalcEvent",
                 "com.hollingsworth.arsnouveau.api.client.IDisplayMana",
-                "com.hollingsworth.arsnouveau.api.item.ICasterTool");
+                "com.hollingsworth.arsnouveau.api.item.ICasterTool",
+                "com.hollingsworth.arsnouveau.api.event.SpellCastEvent",
+                "com.hollingsworth.arsnouveau.api.event.EffectResolveEvent",
+                "com.hollingsworth.arsnouveau.api.spell.IContextAttachment",
+                "com.hollingsworth.arsnouveau.api.spell.wrapped_caster.TileCaster",
+                "com.hollingsworth.arsnouveau.common.block.tile.RuneTile",
+                "com.hollingsworth.arsnouveau.common.entity.EntityProjectileSpell",
+                "com.hollingsworth.arsnouveau.common.spell.effect.EffectHeal");
     }
 
     @Override

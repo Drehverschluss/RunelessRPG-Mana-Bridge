@@ -13,10 +13,12 @@ import org.jetbrains.annotations.Nullable;
 public final class AdapterHandle implements AdapterStatus {
     private final ManaAdapter adapter;
     private final boolean loaded;
-    // generic config values; enabled, manaFactor and applyManaCost are null for RunelessRPG (it is always there)
+    // generic config values; enabled, manaFactor, applyManaCost and applyOvercharge are null for RunelessRPG (it is always there)
     @Nullable ModConfigSpec.BooleanValue enabled;
     @Nullable ModConfigSpec.DoubleValue manaFactor;
     @Nullable ModConfigSpec.BooleanValue applyManaCost;
+    /** @since 0.2.0 (phase C5B) */
+    @Nullable ModConfigSpec.BooleanValue applyOvercharge;
     @Nullable ModConfigSpec.BooleanValue bridgeMaxMana;
     @Nullable ModConfigSpec.BooleanValue bridgeManaRegen;
     @Nullable ModConfigSpec.BooleanValue bridgePercentBonuses;
@@ -121,6 +123,15 @@ public final class AdapterHandle implements AdapterStatus {
 
     public boolean configApplyManaCost() {
         return BridgeConfig.get(applyManaCost, true);
+    }
+
+    /**
+     * Server value of {@code applyOvercharge}: runelessrpg:overcharge raises cost and effect of this mod's spells.
+     *
+     * @since 0.2.0 (phase C5B)
+     */
+    public boolean configApplyOvercharge() {
+        return BridgeConfig.get(applyOvercharge, true);
     }
 
     public boolean bridgeMaxMana() {

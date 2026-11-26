@@ -2,8 +2,10 @@ package com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau;
 
 import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.core.Pool;
+import com.hollingsworth.arsnouveau.api.event.EffectResolveEvent;
 import com.hollingsworth.arsnouveau.api.event.ManaRegenCalcEvent;
 import com.hollingsworth.arsnouveau.api.event.MaxManaCalcEvent;
+import com.hollingsworth.arsnouveau.api.event.SpellCastEvent;
 import com.hollingsworth.arsnouveau.api.event.SpellDamageEvent;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.EventPriority;
@@ -80,15 +82,52 @@ public final class ArsEvents {
 
     // ------------------------------------------------------------------ Spell Mana Leech: which Ars hit is happening right now
 
-    /** Last listener before the damage: remember the hit for {@link ArsLeech} (the damage events run inside it). */
+    /**
+     * Last listener before the damage: overcharge raises it ({@link ArsOvercharge}), then the hit is remembered for
+     * {@link ArsLeech} (the damage events run inside it; leech counts the real damage, with the bonus).
+     */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public static void damagePre(SpellDamageEvent.Pre event) {
+        try {
+            ArsOvercharge.onDamage(event);
+        } catch (RuntimeException e) {
+            error("overcharge (SpellDamageEvent.Pre)", e);
+        }
         try {
             if (event.caster instanceof ServerPlayer player && Pool.isRealPlayer(player)) {
                 ArsLeech.push(event, player);
             }
         } catch (RuntimeException e) {
             error("Spell Mana Leech (SpellDamageEvent.Pre)", e);
+        }
+    }
+
+    // ------------------------------------------------------------------ overcharge: which cast is paid, which effect resolves
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void cast(SpellCastEvent event) {
+        try {
+            ArsOvercharge.onCast(event);
+        } catch (RuntimeException e) {
+            error("overcharge (SpellCastEvent)", e);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.LOWEST)
+    public static void effectPre(EffectResolveEvent.Pre event) {
+        try {
+            ArsOvercharge.effectStarts(event);
+        } catch (RuntimeException e) {
+            error("overcharge (EffectResolveEvent.Pre)", e);
+        }
+    }
+
+    @SubscribeEvent(priority = EventPriority.HIGHEST)
+    public static void effectPost(EffectResolveEvent.Post event) {
+        try {
+            ArsOvercharge.effectEnds(event);
+        } catch (RuntimeException e) {
+            error("overcharge (EffectResolveEvent.Post)", e);
         }
     }
 
@@ -105,6 +144,7 @@ public final class ArsEvents {
     @SubscribeEvent
     public static void serverTick(ServerTickEvent.Post event) {
         ArsLeech.clear();
+        ArsOvercharge.clearTick();
         try {
             ArsStorage.flush(event.getServer());
         } catch (RuntimeException e) {

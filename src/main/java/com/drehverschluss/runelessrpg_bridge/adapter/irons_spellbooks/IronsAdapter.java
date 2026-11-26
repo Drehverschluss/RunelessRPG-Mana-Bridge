@@ -122,6 +122,7 @@ public final class IronsAdapter implements ManaAdapter {
         IronsAdapter.status = status;
         NeoForge.EVENT_BUS.register(IronsEvents.class);
         modBus.addListener(FMLCommonSetupEvent.class, event -> IronsLeech.register());
+        IronsOvercharge.register();
     }
 
     @Override
@@ -138,7 +139,10 @@ public final class IronsAdapter implements ManaAdapter {
                 "io.redspace.ironsspellbooks.damage.SpellDamageSource",
                 "io.redspace.ironsspellbooks.entity.spells.AbstractMagicProjectile",
                 "io.redspace.ironsspellbooks.entity.spells.AbstractConeProjectile",
-                "io.redspace.ironsspellbooks.entity.spells.AoeEntity");
+                "io.redspace.ironsspellbooks.entity.spells.AoeEntity",
+                "io.redspace.ironsspellbooks.api.events.SpellDamageEvent",
+                "io.redspace.ironsspellbooks.api.events.SpellHealEvent",
+                "io.redspace.ironsspellbooks.capabilities.magic.RecastInstance");
     }
 
     @Override

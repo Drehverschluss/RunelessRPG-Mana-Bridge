@@ -12,6 +12,8 @@ import org.jetbrains.annotations.Nullable;
 public final class ClientBridgeState {
     private static volatile BridgeSettingsPayload current = null;
     private static volatile Map<String, BridgeSettingsPayload.AdapterState> byId = Map.of();
+    /** {@code applyOvercharge} per adapter on the server; empty = server without it (0.1.0) or no server values yet. */
+    private static volatile Map<String, Boolean> overcharge = Map.of();
     /** Called on the client after new values arrived (set by the client part, which may use client classes). */
     private static volatile Runnable onUpdate = () -> {};
 
@@ -45,10 +47,25 @@ public final class ClientBridgeState {
         onCloseAsk.run();
     }
 
+    static void acceptOvercharge(OverchargePayload payload) {
+        overcharge = Map.copyOf(payload.applyOvercharge());
+        onUpdate.run();
+    }
+
+    /**
+     * @return the server's {@code applyOvercharge} for this adapter; false while the server has not sent it (a server
+     *         with the bridge 0.1.0 does not apply overcharge to spells of other mods)
+     * @since 0.2.0 (phase C5B)
+     */
+    public static boolean applyOvercharge(String modId) {
+        return overcharge.getOrDefault(modId, false);
+    }
+
     /** Forget everything when leaving a server. */
     public static void reset() {
         current = null;
         byId = Map.of();
+        overcharge = Map.of();
     }
 
     /** @return true if the adapter is connected on the server (leading or following) */

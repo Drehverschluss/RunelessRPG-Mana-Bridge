@@ -9,6 +9,7 @@
     "ManaCapEventsMixin",
     "ManaCapMixin",
     "ManaUtilMixin",
+    "RuneTileMixin",
     "SpellResolverMixin"
   ],
   "client": [

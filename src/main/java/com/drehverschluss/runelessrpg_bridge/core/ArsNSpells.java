@@ -30,6 +30,22 @@ public final class ArsNSpells {
         }
     }
 
+    /**
+     * @return true while Ars 'n Spells bills Ars spells itself: its unification is on in any mode but {@code disabled},
+     *         also in {@code separate} (there it bills them from Ars' own mana, "dual cost"; checked in its jar 3.4.2:
+     *         {@code ModeRoutingSnapshot.isUnified}, {@code ArsCastPayments}). If it cannot be read: true (the safe side for
+     *         overcharge: no bonus without the surcharge).
+     * @since 0.2.0 (phase C5B)
+     */
+    public static boolean billsArsSpells() {
+        try {
+            String mode = mode();
+            return !mode.isEmpty() && !mode.equals("disabled");
+        } catch (ReflectiveOperationException | RuntimeException | LinkageError e) {
+            return true;
+        }
+    }
+
     /** @return true while the mana unification is on in the mode {@code iss_primary} (Iron's is the one pool) */
     public static boolean issPrimary() {
         return modeIs("iss_primary");

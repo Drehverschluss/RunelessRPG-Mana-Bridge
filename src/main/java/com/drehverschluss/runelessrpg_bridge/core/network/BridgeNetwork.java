@@ -14,7 +14,7 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.neoforged.neoforge.server.ServerLifecycleHooks;
 
 /**
- * Network channel of the bridge (one payload, server → client). The channel is <b>optional</b>: a client with the bridge
+ * Network channel of the bridge (settings, overcharge and the first-start question). The channel is <b>optional</b>: a client with the bridge
  * can join a server without it (the bridge stays off on that client), and a client without it can join a server with
  * it (pool, costs and debt are right because the server computes them; the client only lacks the bar choice and the
  * converted displays). The payload is only sent to clients that have the channel.
@@ -33,6 +33,9 @@ public final class BridgeNetwork {
                 (payload, context) -> context.enqueueWork(() -> ClientBridgeState.ask(payload)));
         registrar.playToClient(ManaSystemPayloads.Close.TYPE, ManaSystemPayloads.Close.CODEC,
                 (payload, context) -> context.enqueueWork(ClientBridgeState::closeAsk));
+        // applyOvercharge (0.2.0, phase C5B): a payload id of its own for the same reason
+        registrar.playToClient(OverchargePayload.TYPE, OverchargePayload.CODEC,
+                (payload, context) -> context.enqueueWork(() -> ClientBridgeState.acceptOvercharge(payload)));
         registrar.playToServer(ManaSystemPayloads.Answer.TYPE, ManaSystemPayloads.Answer.CODEC,
                 (payload, context) -> context.enqueueWork(() -> {
                     if (context.player() instanceof ServerPlayer player) {
@@ -56,6 +59,15 @@ public final class BridgeNetwork {
         return new BridgeSettingsPayload(Leader.id(), BridgeConfig.get(BridgeConfig.FOREIGN_SPELLS_USE_DEBT, true), List.copyOf(states));
     }
 
+    /** The current {@code applyOvercharge} of every adapter (server values). */
+    public static OverchargePayload overchargeSnapshot() {
+        java.util.Map<String, Boolean> map = new java.util.LinkedHashMap<>();
+        for (AdapterHandle handle : Adapters.foreign()) {
+            map.put(handle.modId(), handle.configApplyOvercharge());
+        }
+        return new OverchargePayload(java.util.Map.copyOf(map));
+    }
+
     /** @return true if the player's client has the bridge's channel */
     public static boolean hasChannel(ServerPlayer player) {
         return player.connection != null && player.connection.hasChannel(BridgeSettingsPayload.TYPE);
@@ -63,7 +75,15 @@ public final class BridgeNetwork {
 
     public static void send(ServerPlayer player) {
         if (hasChannel(player)) {
+            // overcharge first: the client applies the settings right away and then already knows applyOvercharge
+            sendOvercharge(player, overchargeSnapshot());
             PacketDistributor.sendToPlayer(player, snapshot());
+        }
+    }
+
+    private static void sendOvercharge(ServerPlayer player, OverchargePayload payload) {
+        if (player.connection != null && player.connection.hasChannel(OverchargePayload.TYPE)) {
+            PacketDistributor.sendToPlayer(player, payload);
         }
     }
 
@@ -73,8 +93,10 @@ public final class BridgeNetwork {
             return;
         }
         BridgeSettingsPayload payload = snapshot();
+        OverchargePayload overcharge = overchargeSnapshot();
         for (ServerPlayer player : server.getPlayerList().getPlayers()) {
             if (hasChannel(player)) {
+                sendOvercharge(player, overcharge);
                 PacketDistributor.sendToPlayer(player, payload);
             }
         }

@@ -29,6 +29,9 @@ public final class Bridge {
         for (AdapterHandle handle : Adapters.all()) {
             handle.adapter().init(modBus, handle);
         }
+        if (Adapters.foreign().stream().anyMatch(AdapterHandle::loaded)) {
+            Overcharge.register(); // overcharge for spells of other mods; without one of them the bridge does nothing
+        }
         modBus.addListener(BridgeNetwork::register);
         modBus.addListener(FMLCommonSetupEvent.class, event -> event.enqueueWork(() -> {
             SelfTest.runCommon();

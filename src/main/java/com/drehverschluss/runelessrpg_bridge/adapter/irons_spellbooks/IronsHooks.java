@@ -157,6 +157,11 @@ public final class IronsHooks {
         return Pool.canAfford(player, ID, cost) ? 0 : Integer.MAX_VALUE;
     }
 
+    /** End of {@code AbstractSpell.castSpell} (overcharge: the cast is over). */
+    public static void castEnds() {
+        IronsOvercharge.castEnds();
+    }
+
     // ------------------------------------------------------------------ items
 
     /** Iron's casting items: spell books, staves and other {@link CastingItem}s, items with a spell container. */

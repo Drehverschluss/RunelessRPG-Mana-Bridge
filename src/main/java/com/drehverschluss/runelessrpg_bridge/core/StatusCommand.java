@@ -245,8 +245,13 @@ public final class StatusCommand {
         Object regen = leader.equals(Adapters.RUNELESS)
                 ? t("player.regen", ", regeneration %s per second", new Num(RunelessApi.getManaRegen(player), false))
                 : "";
-        lines.add(t("player", "Player %s (%s): %s / %s RunelessRPG mana, debt %s%s", player.getGameProfile().getName(),
-                player.gameMode.getGameModeForPlayer().getName(), new Num(mana, false), new Num(max, false), new Num(debt, false), regen));
+        // overcharge (0.2.0): attribute value, cost factor and damage/healing bonus as RunelessRPG computes them for this player
+        double overcharge = RunelessApi.getOverchargeCostFactor(player) - 1.0;
+        Object overchargeText = t("player.overcharge", ", overcharge %s (cost x%s, bonus x%s)", new Num(overcharge, false),
+                new Num(RunelessApi.getOverchargeCostFactor(player), false), new Num(RunelessApi.getOverchargeBonus(player), false));
+        lines.add(t("player", "Player %s (%s): %s / %s RunelessRPG mana, debt %s%s%s", player.getGameProfile().getName(),
+                player.gameMode.getGameModeForPlayer().getName(), new Num(mana, false), new Num(max, false), new Num(debt, false), regen,
+                overchargeText));
         List<Text> units = new ArrayList<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             if (!handle.isConnectedOnServer()) {
@@ -320,7 +325,7 @@ public final class StatusCommand {
     }
 
     /**
-     * The server config in one line: always manaSystem and foreignSpellsUseDebt; applyManaCost and the bridge switches only
+     * The server config in one line: always manaSystem and foreignSpellsUseDebt; applyManaCost, applyOvercharge and the bridge switches only
      * where they are off; then every other option that differs from its default (file order). Options of {@code [general]}
      * without the section name, the others as {@code section.key}.
      */
@@ -343,7 +348,7 @@ public final class StatusCommand {
                     String text = path + " = " + (current instanceof String s ? "\"" + s + "\"" : String.valueOf(current));
                     if (key.equals("manaSystem") || key.equals("foreignSpellsUseDebt")) {
                         main.add(text);
-                    } else if (key.startsWith("bridge") || key.equals("applyManaCost")) {
+                    } else if (key.startsWith("bridge") || key.equals("applyManaCost") || key.equals("applyOvercharge")) {
                         if (!Boolean.TRUE.equals(current)) {
                             switchesOff.add(text);
                         }
@@ -353,7 +358,7 @@ public final class StatusCommand {
                 }
             }
         }
-        return t("config", "Config: %s; applyManaCost and bridge switches: %s; %s", String.join(", ", main),
+        return t("config", "Config: %s; applyManaCost, applyOvercharge and bridge switches: %s; %s", String.join(", ", main),
                 switchesOff.isEmpty() ? t("config.switches_on", "all on") : String.join(", ", switchesOff),
                 changed.isEmpty()
                         ? t("config.defaults", "other options at their defaults")

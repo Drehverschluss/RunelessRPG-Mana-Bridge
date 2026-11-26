@@ -197,6 +197,35 @@ public final class DisplayManager {
         return Component.literal(text);
     }
 
+    /**
+     * The overcharge line under the cost of a spell of another mod, like RunelessRPG's for Spell Engine spells:
+     * "Overcharge: +10% damage" (or healing, or damage and healing), only with a bonus (plan 4.10). Healing only with
+     * {@code overchargeAffectsHealing}. Null if there is nothing to show.
+     *
+     * @since 0.2.0 (phase C5B)
+     */
+    public static @Nullable MutableComponent overchargeLine(Player player, String modId, boolean damage, boolean healing) {
+        if (!Pool.applyOvercharge(player, modId) || !Pool.connected(modId, player)) {
+            return null;
+        }
+        double bonus = RunelessApi.getOverchargeBonus(player) - 1.0;
+        if (!(bonus > 1.0E-9)) {
+            return null;
+        }
+        boolean heal = healing && RunelessApi.overchargeAffectsHealing(player.level());
+        String key;
+        if (damage && heal) {
+            key = "tooltip.runelessrpg_bridge.overcharge.both";
+        } else if (heal) {
+            key = "tooltip.runelessrpg_bridge.overcharge.healing";
+        } else if (damage) {
+            key = "tooltip.runelessrpg_bridge.overcharge.damage";
+        } else {
+            return null;
+        }
+        return Component.translatable(key, format(bonus * 100.0)).withStyle(net.minecraft.ChatFormatting.DARK_AQUA);
+    }
+
     private static String value(@Nullable String s) {
         return s == null ? "" : s;
     }
