@@ -59,13 +59,29 @@ public final class BridgeNetwork {
         return new BridgeSettingsPayload(Leader.id(), BridgeConfig.get(BridgeConfig.FOREIGN_SPELLS_USE_DEBT, true), List.copyOf(states));
     }
 
-    /** The current {@code applyOvercharge} of every adapter (server values). */
+    /** The current {@code applyOvercharge} of every adapter and whether another bridge pays its spells (server values). */
     public static OverchargePayload overchargeSnapshot() {
         java.util.Map<String, Boolean> map = new java.util.LinkedHashMap<>();
         for (AdapterHandle handle : Adapters.foreign()) {
             map.put(handle.modId(), handle.configApplyOvercharge());
         }
-        return new OverchargePayload(java.util.Map.copyOf(map));
+        return new OverchargePayload(java.util.Map.copyOf(map), paidByOtherBridge());
+    }
+
+    /**
+     * Per adapter whose mod is loaded: whether another bridge pays its spells itself right now ({@code
+     * ManaAdapter.spellsPaidByOtherBridge}).
+     *
+     * @since 0.2.0 (phase C5C.1)
+     */
+    public static java.util.Map<String, Boolean> paidByOtherBridge() {
+        java.util.Map<String, Boolean> map = new java.util.LinkedHashMap<>();
+        for (AdapterHandle handle : Adapters.foreign()) {
+            if (net.neoforged.fml.ModList.get().isLoaded(handle.modId())) {
+                map.put(handle.modId(), handle.adapter().spellsPaidByOtherBridge());
+            }
+        }
+        return java.util.Map.copyOf(map);
     }
 
     /** @return true if the player's client has the bridge's channel */

@@ -64,12 +64,13 @@ public final class BridgeConfig {
                 .translation(key("notifyConflictsInChat"))
                 .define("notifyConflictsInChat", true);
         CHAIN_WITH_ARS_N_SPELLS = b.comment(
-                        "Chain with the mana unification of Ars 'n Spells. Mode \"iss_primary\" (Iron's is its one pool, Ars Nouveau reads",
-                        "it): only the Iron's adapter runs (Iron's <-> leading pool), Ars 'n Spells keeps Ars <-> Iron's, the Ars adapter is",
-                        "off. Mode \"ars_primary\" the other way round: only the Ars adapter runs, the Iron's adapter is off. The adapter that",
-                        "is off cannot lead (manaSystem falls back to \"runelessrpg\"). In a chain the spells that Ars 'n Spells pays for skip",
-                        "mana_cost, mana debt and Spell Mana Leech. Off: any active mana unification turns both adapters off; \"hybrid\"",
-                        "always does. Changes of Ars 'n Spells' mode (also with /ans mode set) are noticed within a second.")
+                        "Chain with the mana unification of Ars 'n Spells. \"iss_primary\": only the Iron's adapter runs, Ars 'n Spells keeps",
+                        "Ars <-> Iron's and pays Ars spells itself. \"ars_primary\": only the Ars adapter runs, Ars 'n Spells pays Iron's and",
+                        "Ars spells itself. The adapter that is off cannot lead (manaSystem falls back to \"runelessrpg\"), and spells of its mod",
+                        "get no Spell Mana Leech. \"separate\": both adapters run, but Ars 'n Spells still pays Ars spells itself. Spells that",
+                        "Ars 'n Spells pays skip mana_cost, mana debt and overcharge of this bridge. For every function set",
+                        "enable_mana_unification = false in ars_n_spells-server.toml. Off: any active mana unification (not \"separate\") turns",
+                        "both adapters off; \"hybrid\" always does. Changes of Ars 'n Spells' mode (also /ans mode set) count within a second.")
                 .translation(key("chainWithArsNSpells"))
                 .define("chainWithArsNSpells", true);
         b.pop();

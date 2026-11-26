@@ -205,7 +205,8 @@ public final class DisplayManager {
      * @since 0.2.0 (phase C5B)
      */
     public static @Nullable MutableComponent overchargeLine(Player player, String modId, boolean damage, boolean healing) {
-        if (!Pool.applyOvercharge(player, modId) || !Pool.connected(modId, player)) {
+        if (!Pool.applyOvercharge(player, modId) || !Pool.connected(modId, player)
+                || ClientBridgeState.paidByOtherBridge(modId)) { // another bridge pays these spells without overcharge (C5C.1)
             return null;
         }
         double bonus = RunelessApi.getOverchargeBonus(player) - 1.0;

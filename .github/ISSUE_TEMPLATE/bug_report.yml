@@ -20,14 +20,14 @@ body:
     id: bridge
     attributes:
       label: RunelessRPG Mana Bridge version
-      placeholder: "0.1.0"
+      placeholder: "0.2.0"
     validations:
       required: true
   - type: input
     id: runelessrpg
     attributes:
       label: RunelessRPG version
-      placeholder: "0.4.0"
+      placeholder: "0.4.1"
     validations:
       required: true
   - type: input
@@ -46,7 +46,7 @@ body:
     id: other-mods
     attributes:
       label: Other magic and mana mods
-      description: Iron's and Ars addons, other mana bridges, mods that change mana or spell costs. With Ars 'n Spells please name its mana mode too (`mana_unification_mode` in `ars_n_spells-server.toml`, for example iss_primary, ars_primary or separate). A full mod list or modpack name with version helps too.
+      description: Iron's and Ars addons, other mana bridges, mods that change mana or spell costs. With Ars 'n Spells please name its mana settings too (`enable_mana_unification` and `mana_unification_mode` in `ars_n_spells-server.toml`, for example true and iss_primary, ars_primary or separate). A full mod list or modpack name with version helps too.
     validations:
       required: false
   - type: dropdown

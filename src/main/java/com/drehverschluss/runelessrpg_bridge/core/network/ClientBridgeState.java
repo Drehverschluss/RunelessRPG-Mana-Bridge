@@ -14,6 +14,8 @@ public final class ClientBridgeState {
     private static volatile Map<String, BridgeSettingsPayload.AdapterState> byId = Map.of();
     /** {@code applyOvercharge} per adapter on the server; empty = server without it (0.1.0) or no server values yet. */
     private static volatile Map<String, Boolean> overcharge = Map.of();
+    /** Per adapter: another bridge pays its spells itself (server value, phase C5C.1); empty = not sent (server 0.1.0). */
+    private static volatile Map<String, Boolean> paidByOtherBridge = Map.of();
     /** Called on the client after new values arrived (set by the client part, which may use client classes). */
     private static volatile Runnable onUpdate = () -> {};
 
@@ -49,7 +51,17 @@ public final class ClientBridgeState {
 
     static void acceptOvercharge(OverchargePayload payload) {
         overcharge = Map.copyOf(payload.applyOvercharge());
+        paidByOtherBridge = Map.copyOf(payload.paidByOtherBridge());
         onUpdate.run();
+    }
+
+    /**
+     * @return true while the server says that another bridge pays this mod's spells itself (Ars 'n Spells): the client
+     *         then shows their costs without {@code mana_cost} and overcharge of the bridge and no overcharge line
+     * @since 0.2.0 (phase C5C.1)
+     */
+    public static boolean paidByOtherBridge(String modId) {
+        return paidByOtherBridge.getOrDefault(modId, false);
     }
 
     /**
@@ -66,6 +78,7 @@ public final class ClientBridgeState {
         current = null;
         byId = Map.of();
         overcharge = Map.of();
+        paidByOtherBridge = Map.of();
     }
 
     /** @return true if the adapter is connected on the server (leading or following) */

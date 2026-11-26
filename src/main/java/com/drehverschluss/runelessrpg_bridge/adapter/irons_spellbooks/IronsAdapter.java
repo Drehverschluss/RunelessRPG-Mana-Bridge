@@ -165,6 +165,12 @@ public final class IronsAdapter implements ManaAdapter {
      * bridge counts as active.
      */
     @Override
+    public boolean spellsPaidByOtherBridge() {
+        // Ars 'n Spells pays Iron's spells in "ars_primary" (this adapter is off there anyway)
+        return net.neoforged.fml.ModList.get().isLoaded("ars_n_spells") && ArsNSpells.arsPrimary();
+    }
+
+    @Override
     public List<ConflictCheck> conflicts() {
         return List.of(
                 // Ars 'n Spells: only while its mana unification is on (ISS_PRIMARY, ARS_PRIMARY, HYBRID); in ISS_PRIMARY

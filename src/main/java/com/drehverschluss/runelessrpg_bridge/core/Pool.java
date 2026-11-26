@@ -168,6 +168,11 @@ public final class Pool {
      * lower limit, as for Spell Engine spells). Both off: 1.
      */
     public static double costMultiplier(Player player, String modId) {
+        if (isClient(player) && ClientBridgeState.paidByOtherBridge(modId)) {
+            // another bridge (Ars 'n Spells) pays these spells itself, without mana_cost and overcharge of this bridge:
+            // the client shows and checks what it really takes (phase C5C.1). The server never reaches its hooks then.
+            return 1.0;
+        }
         boolean manaCost = applyManaCost(player, modId);
         boolean overcharge = applyOvercharge(player, modId);
         if (manaCost && overcharge) {

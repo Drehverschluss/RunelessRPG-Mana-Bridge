@@ -99,6 +99,18 @@ public interface ManaAdapter {
         return List.of();
     }
 
+    /**
+     * Server side, while the mod is loaded: whether another bridge pays this mod's spells itself right now (Ars 'n Spells
+     * in a mode of its mana unification). Those spells skip {@code mana_cost}, debt and overcharge of this bridge, so the
+     * client shows their costs without them and no overcharge line. The server sends the value to the clients and
+     * looks at it again once a second while another bridge is installed.
+     *
+     * @since 0.2.0 (phase C5C.1)
+     */
+    default boolean spellsPaidByOtherBridge() {
+        return false;
+    }
+
     /** Whether this mod can lead the shared pool ({@code manaSystem}); then {@link #createStorage()} must work. */
     default boolean canLead() {
         return false;

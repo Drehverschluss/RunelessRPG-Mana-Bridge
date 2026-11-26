@@ -133,7 +133,7 @@ public final class ArsAdapter implements ManaAdapter {
                 .translation(BridgeConfig.key("disableOwnRegen"))
                 .define("disableOwnRegen", true);
         SPELL_MANA_LEECH = b.comment(
-                        "runelessrpg:spell_mana_leech also works on direct hits of Ars spells the player cast himself (projectile, touch,",
+                        "runelessrpg:spell_mana_leech also works on direct hits of the player's own Ars spells (projectile, touch,",
                         "self, underfoot, burst, delay). Not: damage after a glyph in leechZoneGlyphs, runes, turrets, summons, effects.")
                 .translation(BridgeConfig.key("spellManaLeech"))
                 .define("spellManaLeech", true);
@@ -214,6 +214,12 @@ public final class ArsAdapter implements ManaAdapter {
      * ({@code chainWithArsNSpells}; in ISS_PRIMARY only the Iron's adapter runs). Ars Mana Bridge and Mana Unifier (no
      * switch): always; Unified Mana: while its Ars integration is on.
      */
+    @Override
+    public boolean spellsPaidByOtherBridge() {
+        // Ars 'n Spells pays Ars spells in every mode of its mana unification but "disabled", also in "separate" (C5B 6.4)
+        return net.neoforged.fml.ModList.get().isLoaded("ars_n_spells") && ArsNSpells.billsArsSpells();
+    }
+
     @Override
     public List<ConflictCheck> conflicts() {
         return List.of(

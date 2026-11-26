@@ -35,11 +35,23 @@ public final class Conflicts {
         if (knownBridgeInstalled == null) {
             knownBridgeInstalled = knownIds().stream().anyMatch(ModList.get()::isLoaded);
         }
-        if ((knownBridgeInstalled || !extraMods().isEmpty()) && evaluate()) {
+        if (!knownBridgeInstalled && extraMods().isEmpty()) {
+            return;
+        }
+        boolean changed = evaluate();
+        if (changed) {
             Leader.update(server);
+        }
+        // phase C5C.1: who pays the spells can change without an adapter changing (Ars 'n Spells "separate" <-> "disabled")
+        java.util.Map<String, Boolean> paid = com.drehverschluss.runelessrpg_bridge.core.network.BridgeNetwork.paidByOtherBridge();
+        if (changed || !paid.equals(lastPaid)) {
+            lastPaid = paid;
             com.drehverschluss.runelessrpg_bridge.core.network.BridgeNetwork.sendToAll();
         }
     }
+
+    /** Last {@code paidByOtherBridge} the clients got from the poll (phase C5C.1). */
+    private static java.util.Map<String, Boolean> lastPaid = java.util.Map.of();
 
     /**
      * Looks at all bridges again (their switches can change at runtime).
