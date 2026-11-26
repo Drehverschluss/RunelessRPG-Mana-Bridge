@@ -4,6 +4,7 @@ import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.core.network.BridgeNetwork;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerPlayer;
+import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.config.ModConfig;
@@ -59,8 +60,27 @@ public final class Bridge {
                 Conflicts.notifyOperator(player);
             }
         });
+        // First-start question (plan 5.6) at the lowest priority: the listener above has evaluated the self test, the other
+        // bridges and the leader, and every mod has run its own login handler. RunelessRPG sets the base values of max_mana
+        // and mana_regen from its config there; the question shows those, not the values saved with the player.
+        NeoForge.EVENT_BUS.addListener(EventPriority.LOWEST, PlayerEvent.PlayerLoggedInEvent.class, event -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                try {
+                    ManaSystemChoice.onLogin(player);
+                } catch (RuntimeException e) {
+                    ManaBridge.LOGGER.warn("The mana system question could not be sent", e);
+                }
+            }
+        });
+        NeoForge.EVENT_BUS.addListener(PlayerEvent.PlayerLoggedOutEvent.class, event -> {
+            if (event.getEntity() instanceof ServerPlayer player) {
+                ManaSystemChoice.onLogout(player);
+                Pool.forget(player);
+            }
+        });
         BonusBridge.register();
         NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, StatusCommand::register);
+        NeoForge.EVENT_BUS.addListener(RegisterCommandsEvent.class, ManaSystemCommand::register);
     }
 
     /** The config watcher runs on its own thread: everything that follows is done on the server thread. */

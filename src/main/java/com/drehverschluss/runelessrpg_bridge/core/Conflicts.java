@@ -2,7 +2,7 @@ package com.drehverschluss.runelessrpg_bridge.core;
 
 import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.api.ConflictCheck;
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import net.minecraft.ChatFormatting;
@@ -50,14 +50,22 @@ public final class Conflicts {
         boolean changed = false;
         List<String> extra = extraMods();
         for (AdapterHandle handle : Adapters.foreign()) {
-            List<String> found = new ArrayList<>();
-            List<String> chain = new ArrayList<>();
+            // mod ids in order, each once: a known bridge that is also listed in conflictingMods is named once (C4B.1 4.2)
+            Set<String> found = new LinkedHashSet<>();
+            Set<String> chain = new LinkedHashSet<>();
             for (ConflictCheck check : handle.adapter().conflicts()) {
                 if (ModList.get().isLoaded(check.modId()) && isActive(check)) {
-                    (isChained(check) ? chain : found).add(name(check.modId()));
+                    (isChained(check) ? chain : found).add(check.modId());
                 }
             }
-            String chainText = String.join(", ", chain);
+            for (String modId : extra) {
+                if (ModList.get().isLoaded(modId)) { // listed by the pack: always a conflict, also for a chained bridge (as before)
+                    found.add(modId);
+                }
+            }
+            handle.setChainedIds(List.copyOf(chain));
+            handle.setConflictIds(List.copyOf(found));
+            String chainText = names(chain);
             if (!chainText.equals(handle.chained())) {
                 handle.setChained(chainText);
                 changed = true;
@@ -66,12 +74,7 @@ public final class Conflicts {
                             + "same mod to the leading pool", handle.modId(), chainText);
                 }
             }
-            for (String modId : extra) {
-                if (ModList.get().isLoaded(modId)) {
-                    found.add(name(modId));
-                }
-            }
-            String conflict = String.join(", ", found);
+            String conflict = names(found);
             if (!conflict.equals(handle.conflict())) {
                 boolean wasActive = handle.isConnectedOnServer();
                 handle.setConflict(conflict);
@@ -114,6 +117,10 @@ public final class Conflicts {
         } catch (IllegalStateException e) {
             return List.of();
         }
+    }
+
+    private static String names(Set<String> modIds) {
+        return modIds.stream().map(Conflicts::name).collect(java.util.stream.Collectors.joining(", "));
     }
 
     /** @return the display name of a loaded mod (or its id) */

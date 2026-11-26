@@ -5,6 +5,7 @@ import com.drehverschluss.runelessrpg_bridge.adapter.ars_nouveau.client.ArsClien
 import com.drehverschluss.runelessrpg_bridge.api.AdapterStatus;
 import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
 import com.drehverschluss.runelessrpg_bridge.api.ConflictCheck;
+import com.drehverschluss.runelessrpg_bridge.api.LeadInfo;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
 import com.drehverschluss.runelessrpg_bridge.core.ArsNSpells;
 import com.drehverschluss.runelessrpg_bridge.core.Attributes;
@@ -65,6 +66,12 @@ public final class ArsAdapter implements ManaAdapter {
     @Override
     public double baseMaxMana(@Nullable Player player) {
         return ArsHooks.baseMaxMana();
+    }
+
+    /** Ars' {@code baseMax} and {@code baseRegen} (per second) from its server config; glyphs and book tier add to both. */
+    @Override
+    public LeadInfo leadInfo(@Nullable Player player) {
+        return new LeadInfo(ArsHooks.baseMaxMana(), ArsHooks.baseRegen(), 0.0);
     }
 
     /** Gear bonuses: modifiers on Ars' max mana and mana regen attributes and changes of Ars addons in its two events. */

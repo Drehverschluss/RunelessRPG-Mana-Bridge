@@ -53,21 +53,42 @@ public final class Leader {
      *
      * @return true if the leader changed
      */
+    /**
+     * Server state: the mod ids that can lead right now, RunelessRPG first, then every loaded adapter that can lead and is
+     * connected (installed, enabled, self test passed, not blocked by another bridge). The list comes from the adapters,
+     * so a new adapter needs no change here.
+     *
+     * @since 0.2.0 (phase C5A)
+     */
+    public static List<String> choices() {
+        return Adapters.known().stream().filter(h -> whyNot(h.modId()).isEmpty()).map(AdapterHandle::modId).toList();
+    }
+
+    /**
+     * @param modId a mod id (lower case)
+     * @return why this mod cannot lead right now, empty if it can (server state)
+     * @since 0.2.0 (phase C5A)
+     */
+    public static String whyNot(String modId) {
+        if (modId.equals(Adapters.RUNELESS)) {
+            return "";
+        }
+        AdapterHandle handle = Adapters.knownOrNull(modId);
+        if (handle == null) {
+            return "no adapter for this mod (possible: " + String.join(", ", candidates()) + ")";
+        }
+        if (!handle.adapter().canLead()) {
+            return "this mod cannot lead the pool";
+        }
+        return handle.reasonOnServer();
+    }
+
     static boolean update(@Nullable MinecraftServer server) {
         String wanted = configured();
         String next = Adapters.RUNELESS;
-        String problem = "";
-        if (!wanted.equals(Adapters.RUNELESS)) {
-            AdapterHandle handle = Adapters.knownOrNull(wanted);
-            if (handle == null) {
-                problem = "no adapter for this mod (possible: " + String.join(", ", candidates()) + ")";
-            } else if (!handle.adapter().canLead()) {
-                problem = "this mod cannot lead the pool";
-            } else if (!handle.isConnectedOnServer()) {
-                problem = handle.reasonOnServer();
-            } else {
-                next = wanted;
-            }
+        String problem = whyNot(wanted);
+        if (problem.isEmpty()) {
+            next = wanted;
         }
         String notice = wanted + "|" + problem;
         Leader.problem = problem;

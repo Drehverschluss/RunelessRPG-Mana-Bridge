@@ -113,6 +113,18 @@ public interface ManaAdapter {
     }
 
     /**
+     * Only while the mod is loaded, server side, and only for adapters that {@link #canLead()}: base max mana and own
+     * regeneration of the mod's pool while it leads, read from the mod's real config (for the choice of
+     * {@code manaSystem} in the first-start question). {@code null} if unknown.
+     *
+     * @param player the player who chooses, or {@code null} for the default values
+     * @since 0.2.0 (phase C5A)
+     */
+    default @Nullable LeadInfo leadInfo(@Nullable Player player) {
+        return null;
+    }
+
+    /**
      * Only while the mod is loaded: the mod's own bonuses above its base values for this player, in its own units, as
      * modifiers by operation. Modifiers of this bridge (namespace {@code runelessrpg_bridge}) must be left out, so
      * nothing counts twice. Called every server tick while the adapter is connected and does not lead.

@@ -4,6 +4,7 @@ import com.drehverschluss.runelessrpg.api.ManaBonus;
 import com.drehverschluss.runelessrpg.api.RunelessApi;
 import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
+import com.drehverschluss.runelessrpg_bridge.api.LeadInfo;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
 import com.drehverschluss.runelessrpg_bridge.core.Adapters;
 import com.drehverschluss.runelessrpg_bridge.core.Attributes;
@@ -43,6 +44,12 @@ public final class RunelessAdapter implements ManaAdapter {
     @Override
     public boolean canLead() {
         return true;
+    }
+
+    /** Base values of RunelessRPG's two attributes, which RunelessRPG sets from {@code baseMaxMana} and {@code baseManaRegen}. */
+    @Override
+    public LeadInfo leadInfo(@Nullable Player player) {
+        return new LeadInfo(baseMaxMana(player), Attributes.baseValue(player, MANA_REGEN, 0.5), 0.0);
     }
 
     @Override

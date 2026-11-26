@@ -4,6 +4,9 @@ import com.drehverschluss.runelessrpg.api.ManaChangeEvent;
 import com.drehverschluss.runelessrpg.api.RunelessApi;
 import com.drehverschluss.runelessrpg_bridge.core.network.BridgeSettingsPayload;
 import com.drehverschluss.runelessrpg_bridge.core.network.ClientBridgeState;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.player.Player;
 import net.neoforged.fml.LogicalSide;
@@ -89,9 +92,35 @@ public final class Pool {
 
     // ------------------------------------------------------------------ reading and writing (own units)
 
+    /**
+     * Last value a following mod wrote on the server, per mod and player, with RunelessRPG's mana right after it and the
+     * factor. While RunelessRPG's mana is still exactly that value, reading gives back exactly what was written: the way
+     * through RunelessRPG mana and back (× factor, ÷ factor) can be off in the last bit (32 → 31.999999999999996), and
+     * other bridges compare the value after a debit exactly (Ars 'n Spells cancels the cast with RESOURCE_CHANGED).
+     */
+    private record Echo(double own, double runeless, double factor) {}
+
+    private static final Map<String, Map<UUID, Echo>> ECHO = new ConcurrentHashMap<>();
+
     /** Shared mana in own units; 0 while the player is in debt (other mods cannot show debt). */
     public static double read(Player player, String modId) {
-        return Math.max(0.0, RunelessApi.getMana(player)) / factor(player, modId);
+        double mana = RunelessApi.getMana(player);
+        double factor = factor(player, modId);
+        if (player instanceof ServerPlayer) {
+            Map<UUID, Echo> echoes = ECHO.get(modId);
+            Echo echo = echoes == null ? null : echoes.get(player.getUUID());
+            if (echo != null && echo.runeless() == mana && echo.factor() == factor) {
+                return echo.own();
+            }
+        }
+        return Math.max(0.0, mana) / factor;
+    }
+
+    /** Forgets the written values of a player (logout). */
+    public static void forget(Player player) {
+        for (Map<UUID, Echo> echoes : ECHO.values()) {
+            echoes.remove(player.getUUID());
+        }
     }
 
     /** Shared max mana in own units. */
@@ -114,11 +143,20 @@ public final class Pool {
      * {@code EXTERNAL} (more mana pays debt first and never exceeds the max; less never creates debt).
      */
     public static void write(ServerPlayer player, String modId, double oldOwn, double newOwn) {
-        double delta = (newOwn - oldOwn) * factor(player, modId);
+        double factor = factor(player, modId);
+        double delta = (newOwn - oldOwn) * factor;
         if (delta > 0.0) {
             RunelessApi.giveMana(player, delta, ManaChangeEvent.Reason.EXTERNAL);
         } else if (delta < 0.0) {
             RunelessApi.takeMana(player, -delta, ManaChangeEvent.Reason.EXTERNAL);
+        }
+        // remember the written value only if the pool really holds it (not capped at the max, not stopped at 0 or in debt)
+        double mana = RunelessApi.getMana(player);
+        Map<UUID, Echo> echoes = ECHO.computeIfAbsent(modId, id -> new ConcurrentHashMap<>());
+        if (mana >= 0.0 && Math.abs(mana / factor - newOwn) <= EPSILON) {
+            echoes.put(player.getUUID(), new Echo(newOwn, mana, factor));
+        } else {
+            echoes.remove(player.getUUID());
         }
     }
 

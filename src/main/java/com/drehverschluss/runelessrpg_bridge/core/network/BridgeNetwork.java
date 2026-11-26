@@ -4,6 +4,7 @@ import com.drehverschluss.runelessrpg_bridge.core.AdapterHandle;
 import com.drehverschluss.runelessrpg_bridge.core.Adapters;
 import com.drehverschluss.runelessrpg_bridge.core.BridgeConfig;
 import com.drehverschluss.runelessrpg_bridge.core.Leader;
+import com.drehverschluss.runelessrpg_bridge.core.ManaSystemChoice;
 import java.util.ArrayList;
 import java.util.List;
 import net.minecraft.server.level.ServerPlayer;
@@ -27,6 +28,22 @@ public final class BridgeNetwork {
         PayloadRegistrar registrar = event.registrar(VERSION).optional();
         registrar.playToClient(BridgeSettingsPayload.TYPE, BridgeSettingsPayload.CODEC,
                 (payload, context) -> context.enqueueWork(() -> ClientBridgeState.accept(payload)));
+        // first-start question (0.2.0): new payload ids, so clients and servers of 0.1.0 just do not have them
+        registrar.playToClient(ManaSystemPayloads.Ask.TYPE, ManaSystemPayloads.Ask.CODEC,
+                (payload, context) -> context.enqueueWork(() -> ClientBridgeState.ask(payload)));
+        registrar.playToClient(ManaSystemPayloads.Close.TYPE, ManaSystemPayloads.Close.CODEC,
+                (payload, context) -> context.enqueueWork(ClientBridgeState::closeAsk));
+        registrar.playToServer(ManaSystemPayloads.Answer.TYPE, ManaSystemPayloads.Answer.CODEC,
+                (payload, context) -> context.enqueueWork(() -> {
+                    if (context.player() instanceof ServerPlayer player) {
+                        ManaSystemChoice.onAnswer(player, payload.id());
+                    }
+                }));
+    }
+
+    /** @return true if the player's client can show the first-start question as a window */
+    public static boolean canAsk(ServerPlayer player) {
+        return player.connection != null && player.connection.hasChannel(ManaSystemPayloads.Ask.TYPE);
     }
 
     /** The current server values. */

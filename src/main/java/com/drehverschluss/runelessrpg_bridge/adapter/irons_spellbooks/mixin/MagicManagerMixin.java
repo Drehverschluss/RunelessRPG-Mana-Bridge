@@ -14,12 +14,15 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/** Iron's regeneration off for players, shared max for the regeneration, shared check for channeled spells. */
+/**
+ * Iron's regeneration off for players (also while the adapter is off in a chain, where it would flow into the shared pool
+ * through the other bridge), shared max for the regeneration, shared check for channeled spells.
+ */
 @Mixin(value = MagicManager.class, remap = false)
 public abstract class MagicManagerMixin {
     @Inject(method = "regenPlayerMana", at = @At("HEAD"), cancellable = true, require = 0)
     private void runelessrpg_bridge$noRegen(ServerPlayer player, MagicData data, CallbackInfoReturnable<Boolean> cir) {
-        if (IronsHooks.applies(player) && IronsHooks.disableOwnRegen()) {
+        if (IronsHooks.skipOwnRegen(player)) {
             cir.setReturnValue(false);
         }
     }

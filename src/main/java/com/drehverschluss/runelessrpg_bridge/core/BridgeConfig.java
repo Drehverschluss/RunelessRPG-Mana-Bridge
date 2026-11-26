@@ -12,12 +12,14 @@ import net.neoforged.neoforge.common.ModConfigSpec;
  */
 public final class BridgeConfig {
     public static ModConfigSpec.ConfigValue<String> MANA_SYSTEM;
+    /** @since 0.2.0 (phase C5A) */
+    public static ModConfigSpec.BooleanValue ASK_FOR_MANA_SYSTEM;
     public static ModConfigSpec.BooleanValue FOREIGN_SPELLS_USE_DEBT;
     public static ModConfigSpec.ConfigValue<List<? extends String>> CONFLICTING_MODS;
     public static ModConfigSpec.BooleanValue IGNORE_CONFLICTS;
     public static ModConfigSpec.BooleanValue NOTIFY_CONFLICTS_IN_CHAT;
     public static ModConfigSpec.BooleanValue CHAIN_WITH_ARS_N_SPELLS;
-    /** The whole server config, read section by section by the status command. */
+    /** The whole server config, read section by section by the status command, saved by {@link ManaSystemChoice}. */
     static ModConfigSpec SPEC;
 
     private BridgeConfig() {}
@@ -33,9 +35,17 @@ public final class BridgeConfig {
                         "While another mod leads, RunelessRPG's baseMaxMana and baseManaRegen have no effect on the pool (baseMaxMana",
                         "still sets the automatic manaFactor). With \"irons_spellbooks\" the mana after a respawn follows Iron's",
                         "manaSpawnPercent (default 0 = empty). With \"ars_nouveau\" Ars keeps the mana a player had at death",
-                        "(debt is cleared on death) and regenerates it; Ars' progress, gear and familiars work as without this bridge.")
+                        "(debt is cleared on death) and regenerates it; Ars' progress, gear and familiars work as without this bridge.",
+                        "Also with the command /runelessrpg_bridge manaSystem <id> (operators) or in the config screen of a",
+                        "singleplayer world.")
                 .translation(key("manaSystem"))
                 .define("manaSystem", Adapters.RUNELESS);
+        ASK_FOR_MANA_SYSTEM = b.comment(
+                        "Ask once which mana system leads: at login, in singleplayer (and the LAN host) or an operator on a server, while",
+                        "Iron's Spells 'n Spellbooks or Ars Nouveau is connected. Any answer turns this off; \"Decide later\" asks again",
+                        "at the next login. Packs that ship their config set this to false.")
+                .translation(key("askForManaSystem"))
+                .define("askForManaSystem", true);
         FOREIGN_SPELLS_USE_DEBT = b.comment(
                         "Spells of other mods may go into mana debt like Spell Engine spells (RunelessRPG's DEBT and DEBT_LIMIT",
                         "modes, Borrowed Power). Off: they always need the full mana.")

@@ -15,8 +15,10 @@ public final class BridgeClient {
     private BridgeClient() {}
 
     public static void init(IEventBus modBus, ModContainer container) {
-        // in game: mod list > RunelessRPG Mana Bridge > Config
-        container.registerExtensionPoint(IConfigScreenFactory.class, ConfigurationScreen::new);
+        // in game: mod list > RunelessRPG Mana Bridge > Config; manaSystem and manaDisplay as choice buttons (plan 5.6)
+        container.registerExtensionPoint(IConfigScreenFactory.class,
+                (mod, parent) -> new ConfigurationScreen(container, parent, BridgeConfigScreen::new));
+        ManaSystemScreen.register();
         // adapters exist once the common entry point ran; the order of the two entry points is not fixed
         modBus.addListener(FMLClientSetupEvent.class, event -> {
             for (AdapterHandle handle : Adapters.all()) {

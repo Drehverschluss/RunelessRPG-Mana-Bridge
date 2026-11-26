@@ -1,17 +1,28 @@
 package com.drehverschluss.runelessrpg_bridge.core;
 
+import java.util.Locale;
+import net.minecraft.network.chat.Component;
 import net.neoforged.neoforge.common.ModConfigSpec;
+import net.neoforged.neoforge.common.TranslatableEnum;
 
 /** Client config {@code runelessrpg_bridge-client.toml}, section {@code [display]}. Every player chooses here. */
 public final class BridgeClientConfig {
-    /** Unit for all displayed mana amounts. */
-    public enum DisplayUnit {
+    /**
+     * Unit for all displayed mana amounts. The config file keeps the names (AUTO, LEADER, RUNELESS); the config screen shows
+     * readable, translated names.
+     */
+    public enum DisplayUnit implements TranslatableEnum {
         /** Unit of the leading mod; if exactly one bar of another mod is shown, that mod's unit. */
         AUTO,
         /** Always the unit of the leading mod. */
         LEADER,
         /** Always RunelessRPG mana. */
-        RUNELESS
+        RUNELESS;
+
+        @Override
+        public Component getTranslatedName() {
+            return Component.translatable(BridgeConfig.key("displayUnit.") + name().toLowerCase(Locale.ROOT));
+        }
     }
 
     public static ModConfigSpec.ConfigValue<String> MANA_DISPLAY;

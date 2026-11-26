@@ -28,6 +28,23 @@ public final class ClientBridgeState {
         onUpdate = listener == null ? () -> {} : listener;
     }
 
+    /** Opens / closes the first-start question on the client (set by the client part). */
+    private static volatile java.util.function.Consumer<ManaSystemPayloads.Ask> onAsk = p -> {};
+    private static volatile Runnable onCloseAsk = () -> {};
+
+    public static void setAskHandlers(java.util.function.Consumer<ManaSystemPayloads.Ask> ask, Runnable close) {
+        onAsk = ask;
+        onCloseAsk = close;
+    }
+
+    static void ask(ManaSystemPayloads.Ask payload) {
+        onAsk.accept(payload);
+    }
+
+    static void closeAsk() {
+        onCloseAsk.run();
+    }
+
     /** Forget everything when leaving a server. */
     public static void reset() {
         current = null;

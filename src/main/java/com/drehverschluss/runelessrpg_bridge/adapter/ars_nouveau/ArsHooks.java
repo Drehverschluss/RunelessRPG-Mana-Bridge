@@ -72,6 +72,11 @@ public final class ArsHooks {
         }
     }
 
+    /** Ars' {@code baseRegen} per second (default 5). */
+    static double baseRegen() {
+        return config(ServerConfig.INIT_MANA_REGEN::get, 5.0);
+    }
+
     private static double config(java.util.function.Supplier<? extends Number> value, double fallback) {
         try {
             return value.get().doubleValue();

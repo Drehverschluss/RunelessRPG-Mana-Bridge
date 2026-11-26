@@ -197,6 +197,14 @@ public final class StatusCommand {
                 }
             }
         }
+        // a known bridge that the pack also lists in conflictingMods: one line with both (C4B.1 4.2)
+        List<String> extra = Conflicts.extraMods();
+        for (String modId : extra) {
+            if (parts.containsKey(modId)) {
+                parts.get(modId).add(t("bridge.part.listed", "also listed in conflictingMods, so the adapters are off"));
+                allInactive.put(modId, false);
+            }
+        }
         for (Map.Entry<String, List<Text>> entry : parts.entrySet()) {
             String bridge = nameAndVersion(entry.getKey()) + " (" + entry.getKey() + ")";
             lines.add(allInactive.get(entry.getKey())
@@ -210,8 +218,8 @@ public final class StatusCommand {
                 }
             }
         }
-        for (String modId : Conflicts.extraMods()) {
-            if (ModList.get().isLoaded(modId)) {
+        for (String modId : extra) {
+            if (ModList.get().isLoaded(modId) && !parts.containsKey(modId)) {
                 lines.add(t("bridge.extra", " - %s: listed in conflictingMods; the adapters are off", nameAndVersion(modId) + " (" + modId + ")"));
             }
         }

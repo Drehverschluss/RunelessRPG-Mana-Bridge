@@ -5,6 +5,7 @@ import com.drehverschluss.runelessrpg_bridge.ManaBridge;
 import com.drehverschluss.runelessrpg_bridge.api.AdapterStatus;
 import com.drehverschluss.runelessrpg_bridge.api.BridgeBonus;
 import com.drehverschluss.runelessrpg_bridge.api.ConflictCheck;
+import com.drehverschluss.runelessrpg_bridge.api.LeadInfo;
 import com.drehverschluss.runelessrpg_bridge.api.ManaAdapter;
 import com.drehverschluss.runelessrpg_bridge.core.ArsNSpells;
 import com.drehverschluss.runelessrpg_bridge.core.Attributes;
@@ -58,6 +59,16 @@ public final class IronsAdapter implements ManaAdapter {
         return true;
     }
 
+    /**
+     * Iron's base max mana and its regeneration: every 10 ticks 1 % of the max × {@code mana_regen} (base value) ×
+     * {@code manaRegenMultiplier}, so 2 % of the max per second with the default values.
+     */
+    @Override
+    public LeadInfo leadInfo(@Nullable Player player) {
+        double regenFactor = Attributes.baseValue(player, MANA_REGEN, 1.0) * IronsHooks.regenMultiplier();
+        return new LeadInfo(baseMaxMana(player), 0.0, 2.0 * regenFactor);
+    }
+
     /** Iron's mana as RunelessRPG's storage (only called while Iron's is loaded). */
     @Override
     public ManaStorage createStorage() {
@@ -89,7 +100,10 @@ public final class IronsAdapter implements ManaAdapter {
 
     @Override
     public void defineConfig(ModConfigSpec.Builder b) {
-        DISABLE_OWN_REGEN = b.comment("While Iron's does not lead: turn off Iron's own mana regeneration for players; the leading pool regenerates.")
+        DISABLE_OWN_REGEN = b.comment(
+                        "While Iron's does not lead: turn off Iron's own mana regeneration for players; the leading pool regenerates.",
+                        "Also in the chain with Ars 'n Spells in \"ars_primary\" (this adapter is off there, but Iron's regeneration",
+                        "would flow into the shared pool through Ars 'n Spells).")
                 .translation(BridgeConfig.key("disableOwnRegen"))
                 .define("disableOwnRegen", true);
         IGNORE_OWN_RESPAWN_RULE = b.comment("While Iron's does not lead: Iron's does not set the mana after a respawn (its manaSpawnPercent); the leading pool decides.")
@@ -183,6 +197,11 @@ public final class IronsAdapter implements ManaAdapter {
     /** Iron's is connected (leading or following): costs, leech and converted displays apply. */
     static boolean connected() {
         return status != null && status.isConnected();
+    }
+
+    /** The adapter is off only because of a chain with another bridge (server side). */
+    static boolean offInChain() {
+        return status != null && status.isOffInChain();
     }
 
     static boolean disableOwnRegen() {

@@ -46,6 +46,27 @@ public final class IronsHooks {
         return IronsAdapter.disableOwnRegen();
     }
 
+    /**
+     * Iron's own regeneration is skipped for this player ({@code disableOwnRegen}): while Iron's follows the leading pool,
+     * and also while this adapter is off only because of a chain (Ars 'n Spells in {@code ars_primary}: Iron's mana is
+     * Ars' mana there, so Iron's regeneration would flow into the shared pool besides the leading pool's own).
+     */
+    public static boolean skipOwnRegen(ServerPlayer player) {
+        if (!disableOwnRegen()) {
+            return false;
+        }
+        return applies(player) || IronsAdapter.offInChain() && Pool.isRealPlayer(player);
+    }
+
+    /** Iron's {@code manaRegenMultiplier} from its server config (default 1.0). */
+    static double regenMultiplier() {
+        try {
+            return io.redspace.ironsspellbooks.config.ServerConfigs.MANA_REGEN_MULTIPLIER.get();
+        } catch (RuntimeException e) {
+            return 1.0;
+        }
+    }
+
     public static boolean ignoreOwnRespawnRule() {
         return IronsAdapter.ignoreOwnRespawnRule();
     }
